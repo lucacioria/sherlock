@@ -1,41 +1,18 @@
 #!env ruby
 
-include Math
-require 'active_record'
 require 'awesome_print'
-require 'mysql2'
 require 'pp'
 require 'commander'
+
 require_relative 'histogram'
 require_relative 'test'
 require_relative 'analysis'
+require_relative 'sherlock_db'
+require_relative 'train'
+require_relative 'sherlock_init'
 
-ActiveSupport::Inflector.inflections do |inflect|
-  inflect.clear
-  inflect.singular(/$/i, '')
-end
-
-ActiveRecord::Base.establish_connection(
-  adapter:  'mysql2', # or 'postgresql' or 'sqlite3'
-  database: 'banksealer',
-  username: 'root',
-  host:     'localhost'
-)
-
-class UserHourOfDay < ActiveRecord::Base; end
-class Bonifici < ActiveRecord::Base; end
-class UserHourAnomaly < ActiveRecord::Base; end
-
-=begin
-anal = {}
-
-# distincts
-anal['distincts'] = {}
-Bonifici.columns.each {|column|
-  distincts = Bonifici.distinct.pluck(column.name)[0..20]
-  anal['distincts'][column.name] = distincts.map {|d| [d, Bonifici.where({column.name => d}).count]}
-}
-=end
+include Math
+include SherlockDb
 
 class Sherlock
   include Commander::Methods
@@ -45,6 +22,19 @@ class Sherlock
     program :version, '0.1'
     program :description, 'temporal analysis of transaction on UBI databases'
     program :help, 'how to use', 'bla bla'
+
+    command 'init' do |c|
+      c.syntax = 'init profile-kinds'
+      c.description = 'runs init scripts from the SherlockInit module'
+      c.action do |args, options|
+        case args[0]
+        when 'profile-kinds'
+          SherlockInit::reset_profiles_and_profile_kinds()
+        else
+          raise "unknown init sequence: #{args[0]}"
+        end
+      end
+    end
 
     command 'run-sql' do |c|
       c.syntax = 'run-sql clean'
@@ -74,10 +64,19 @@ class Sherlock
       end
     end
 
+    command 'create-profiles' do |c|
+      c.syntax = 'init profile-kinds'
+      c.description = 'create profiles for each profile kind'
+      c.option '--user-id STRING', String
+      c.action do |args, options|
+        raise 'specify a user-id or --all' if options.user_id.nil? and !options.all
+        Train::save_all_profiles_for_user(options.user_id)
+      end
+    end
+
     command :test do |c|
       c.action do |args, options|
-        # puts [0.5, 1, 2].map{|df| discount(10, 1, df)}
-        asdf()
+        pp Train::create_all_profiles_for_user('002bce3fc82152b2aa23a0d955fd9603')
       end
     end
 
