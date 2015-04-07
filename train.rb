@@ -8,6 +8,13 @@ module Train
     [0, [steps - 1, Math.log(value.to_f, base).to_i].min].max
   end
 
+  # (float, float, float, float) => int
+  def self.linear_binning(min, max, steps, value)
+    bin_size = (max - min) / steps.to_f
+    # return bin, constrained in 0...steps
+    [0, [steps - 1, (value / bin_size).to_i].min].max
+  end
+
   # (int, ProfileKind) => [Profile]
   def self.create_profiles_for_user(user_id, profile_kind)
     c = profile_kind.config
@@ -17,6 +24,8 @@ module Train
           case c[:binning]
           when 'log'
             log_binning(c[:min_value], c[:max_value], c[:number_of_bins], t[c[:field]])
+          when 'linear'
+            linear_binning(c[:min_value], c[:max_value], c[:number_of_bins], t[c[:field]])
           end
         h[bin] = h[bin].nil? ? 1 : h[bin] + 1
         h
