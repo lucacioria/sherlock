@@ -5,7 +5,6 @@ require 'pp'
 require 'commander'
 
 require_relative 'histogram'
-require_relative 'test'
 require_relative 'analysis'
 require_relative 'sherlock_db'
 require_relative 'train'
@@ -68,9 +67,14 @@ class Sherlock
       c.syntax = 'init profile-kinds'
       c.description = 'create profiles for each profile kind'
       c.option '--user-id STRING', String
+      c.option '--all'
       c.action do |args, options|
         raise 'specify a user-id or --all' if options.user_id.nil? and !options.all
-        Train::save_all_profiles_for_user(options.user_id)
+        if options.all
+          Train::save_all_profiles()
+        else
+          Train::save_all_profiles_for_user(options.user_id)
+        end
       end
     end
 
