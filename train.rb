@@ -15,19 +15,39 @@ module Train
     [0, [steps - 1, (value / bin_size).to_i].min].max
   end
 
-  # (int, ProfileKind) => [Profile]
-  def self.create_profiles_for_user(user_id, profile_kind)
+  # ([float], float) => int
+  def self.custom_intervals_binning(intervals, value)
+    # intervals are inclusive left: [1,100)
+    intervals.find_index{|x| x > value} || intervals.length # || kicks in in case of nil, which means last bin
+  end
+
+  # ([string], string) => int
+  def self.categorical_binning(categories, value)
+    categories.find_index{|set| set.include? value} || categories.length
+  end
+
+  # (int, [Transfer], ProfileKind) => [Profile]
+  def self.create_profiles_for_user(user_id, user_transfers, profile_kind)
     c = profile_kind.config
-    Transfers.where(user_id: user_id).group_by(&:month).map{|month, transfers|
-      histogram = transfers.reduce(Array.new(c[:number_of_bins], 0)){|h, t|
+    user_transfers.group_by(&:month).map{|month, transfers|
+      number_of_bins =
+        c[:number_of_bins] ||
+        (c[:intervals] && c[:intervals].length + 1) ||
+        (c[:categories] && c[:categories].length + 1)
+      histogram = transfers.reduce(Array.new(number_of_bins, 0)){|h, t|
+        value = t[c[:field]]
         bin =
           case c[:binning]
           when 'log'
-            log_binning(c[:min_value], c[:max_value], c[:number_of_bins], t[c[:field]])
+            log_binning(c[:min_value], c[:max_value], c[:number_of_bins], value)
           when 'linear'
-            linear_binning(c[:min_value], c[:max_value], c[:number_of_bins], t[c[:field]])
+            linear_binning(c[:min_value], c[:max_value], c[:number_of_bins], value)
+          when 'custom_intervals'
+            custom_intervals_binning(c[:intervals], value)
+          when 'categorical'
+            categorical_binning(c[:categories], value)
           end
-        h[bin] = h[bin].nil? ? 1 : h[bin] + 1
+        h[bin] += 1
         h
       }
       [month, histogram]
@@ -36,15 +56,28 @@ module Train
     }
   end
 
+  # READS FROM DB !!!
   # (int) => [Profile]
   def self.create_all_profiles_for_user(user_id)
-    ProfileKinds.all.map{|profile_kind| create_profiles_for_user(user_id, profile_kind)}.flatten
+    user_transfers = Transfers.where(user_id: user_id)
+    ProfileKinds.all.map{|profile_kind| create_profiles_for_user(user_id, user_transfers, profile_kind)}.flatten
   end
 
   # WRITES ON DB !!!
-  # (int)
+  # (int) => nil
   def self.save_all_profiles_for_user(user_id)
+    Profiles.delete_all(user_id: user_id)
     create_all_profiles_for_user(user_id).each(&:save)
+  end
+
+  # WRITES ON DB !!!
+  # () => nil
+  def self.save_all_profiles
+    Profiles.connection.execute('truncate table profiles')
+    Transfers.distinct.pluck(:user_id).each_with_index{|user_id, i|
+      save_all_profiles_for_user(user_id)
+      puts i if i % 100 == 0
+    }
   end
 
 end
