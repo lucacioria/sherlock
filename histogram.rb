@@ -10,6 +10,64 @@ class Histogram
     @identifier = identifier
   end
 
+  def self.gaussian_array(sigma, size)
+    (-size..size).map{|x| Histogram::gaussian(sigma, x)}
+  end
+
+  def self.gaussian(sigma, x)
+    Math.exp(-0.5*((x.to_f / sigma) ** 2)) / (sigma * Math.sqrt(2*Math::PI))
+  end
+
+  # ([float|nil], [float]) => float
+  # computes the weighted average of `values` with `weights`
+  # nil elements in `values` are ignored, along with their weight
+  def self.weighted_avg(values, weights)
+    raise "negative weights" if weights.any?{|x| x<0}
+    raise "value and weight arrays are of different lengths" if values.length != weights.length
+    totals = values
+      .zip(weights)
+      .select{|vw| !vw[0].nil?}
+      .reduce({w: 0, v:0}) {|a, vw|
+        a[:w] += vw[1]; a[:v] += vw[0] * vw[1]
+        a
+      }
+    totals[:v] / totals[:w].to_f
+  end
+
+  # (int, int, boolean) => [float]
+  # returns a subset of the elements in `histogram` taking `size` elements
+  # left and right of the element in position `center`
+  #
+  # - if `circular` the last bin will be considered next to the first bin
+  # - if not `circular` the neighbours output will be filled with nil if a
+  #   boundary is reached
+  def neighbours(size, center, circular)
+    raise "size too big" if size * 2 + 1 > self.data.length
+    min = if circular
+            (center - size) % self.data.length
+          else
+            center - size
+          end
+    max = if circular
+            (center + size) % self.data.length
+          else
+            center + size
+          end
+    indices = if min < max
+                (min..max).to_a
+              else
+                ((min...self.data.length).to_a + (0..max).to_a)
+              end
+    indices.map{|i| if i < 0 then nil else self.data[i] end}
+  end
+
+  def gaussian_smooth(sigma, circular=false)
+    size = [sigma * 3, self.data.length / 2].min
+    self.data.map.with_index do |v, i|
+      Histogram::weighted_avg(neighbours(size, i, circular), Histogram::gaussian_array(sigma, size))
+    end
+  end
+
   def distance1(b)
     a = self
     raise 'Histogram distance1 requires histograms with equal number of buckets' if a.data.length != b.data.length
