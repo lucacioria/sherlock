@@ -4,10 +4,24 @@ class Histogram
 
   attr_reader :data, :identifier
 
+  # immutable initialization (freeze)
+  # Histograms cannot change once created
   @data = []
   def initialize(data, identifier = nil)
     @data = data
+    @data.freeze
     @identifier = identifier
+    @identifier.freeze
+  end
+
+  # ===============================
+  # CLASS METHODS
+  # ===============================
+
+  # (float, int, float) => float
+  # returns `value` discounted exponentially
+  def self.exp_discount_value(value, steps, discount_factor)
+    value * exp(-discount_factor * steps)
   end
 
   # (float, int) => [float]
@@ -39,7 +53,37 @@ class Histogram
     totals[:v] / totals[:w].to_f
   end
 
-  # (int, int, boolean) => [float]
+  # (Histogram, Histogram) => float
+  # city block distance between the two histograms (as vectors)
+  def self.distance_city_blocks(a, b)
+    a.distance_city_blocks b
+  end
+
+  # (Histogram, Histogram) => float
+  # euclidean distance between the two histograms (as vectors)
+  def self.distance_euclidean(a, b)
+    a.distance_euclidean b
+  end
+
+  # (Histogram, Histogram, float) => float
+  # distance2 circular between the two histograms (as discrete pdfs)
+  # note: here for benchmarking, doesn't work very well
+  def self.distance2_circular(a, b, discountFactor)
+    a.distance2_circular(b, discountFactor)
+  end
+
+  # (Histogram, Histogram, float) => float
+  # distance2 circular directional between the two histograms (as discrete pdfs)
+  # note: here for benchmarking, doesn't work very well
+  def self.distance2_circular_directional(a, b, discountFactor)
+    a.distance2_circular_directional(b, discountFactor)
+  end
+
+  # ===============================
+  # INSTANCE METHODS
+  # ===============================
+
+  # self, (int, int, boolean) => [float]
   # returns a subset of the elements in `histogram` taking `size` elements
   # left and right of the element in position `center`
   #
@@ -66,37 +110,36 @@ class Histogram
     indices.map{|i| if i < 0 then nil else self.data[i] end}
   end
 
+  # self, (float, boolean) => Histogram
+  # return a smothed histogram without modifying the current one
   def gaussian_smooth(sigma, circular=false)
     size = [sigma * 3, self.data.length / 2].min
-    self.data.map.with_index do |v, i|
+    new_data = self.data.map.with_index do |v, i|
       Histogram::weighted_avg(neighbours(size, i, circular), Histogram::gaussian_array(sigma, size))
     end
+    Histogram.new(new_data)
   end
 
-  def distance1(b)
+  # see self.distance_city_blocks
+  def distance_city_blocks(b)
     a = self
-    raise 'Histogram distance1 requires histograms with equal number of buckets' if a.data.length != b.data.length
+    raise 'distance_city_blocks requires histograms with equal number of buckets' if a.data.length != b.data.length
     a.data.zip(b.data).map{|x| x[0] - x[1]}.map(&:abs).inject(:+)
   end
 
+  # see self.distance_euclidean
   def distance_euclidean(b)
     a = self
-    raise 'Histogram distance1 requires histograms with equal number of buckets' if a.data.length != b.data.length
+    raise 'distance_euclidean requires histograms with equal number of buckets' if a.data.length != b.data.length
     sqrt(a.data.zip(b.data).map {|x| (x[1] - x[0])**2 }.reduce(:+))
   end
 
-  def self.distance1(a, b)
-    a.distance1 b
-  end
-
-  def self.distance2_circular(a, b, df)
-    a.distance2_circular(b, df)
-  end
-
+  # see self.distance2_circular
   def distance2_circular(b, df)
     (self.distance2_circular_directional(b, df) + b.distance2_circular_directional(self, df)) / 2
   end
 
+  # see self.distance2_circular_directional
   def distance2_circular_directional(b, df)
     debug = false
     a = self
@@ -110,8 +153,8 @@ class Histogram
       discounted_value_b = (0..max_distance).map {|d|
         current_b_left = b.data[(i - d) % size]
         current_b_right = b.data[(i + d) % size]
-        discounted_left = discount(current_b_left, d, df)
-        discounted_right = discount(current_b_right, d, df)
+        discounted_left = Histogram::exp_discount_value(current_b_left, d, df)
+        discounted_right = Histogram::exp_discount_value(current_b_right, d, df)
         discounted = if d == 0 || d == max_distance then discounted_left else discounted_left + discounted_right end
         puts "  [%01d] a: %01d b: %01d,%01d discounted: %f, %f = %f" % [d, v, current_b_left, current_b_right, discounted_left, discounted_right, discounted] if debug
         discounted
@@ -128,8 +171,8 @@ class Histogram
       (0..max_distance).map {|d|
         current_b_left = b.data[(i - d) % size]
         current_b_right = b.data[(i + d) % size]
-        discounted_left = discount(current_b_left, d, df)
-        discounted_right = discount(current_b_right, d, df)
+        discounted_left = Histogram::exp_discount_value(current_b_left, d, df)
+        discounted_right = Histogram::exp_discount_value(current_b_right, d, df)
         discounted = if d == 0 || d == max_distance then discounted_left else discounted_left + discounted_right end
         discounted
       }.map{|x| [x,v].min}.reduce(:+)
@@ -138,38 +181,19 @@ class Histogram
     difference
   end
 
+  # self => string
+  # string representation of a histogram
   def to_s
     "H(#{@data.join ', '})"
   end
 
+  # self, (float, boolean) => string
+  # return a string representation of the histogram to be printend in the shell
+  # representation is with horizontal bars
   def plot(size = 80, show_index = true)
     to_s + "\n" + @data.map.with_index{|x,i|
       ("%02d: " % i) + '#' * (x.to_f / data.max * size).to_i + (if x > 0 then " (#{x})" else "" end)
     }.join("\n")
   end
 
-  def discount(value, steps, discount_factor)
-    value * exp(-discount_factor * steps)
-  end
-
 end
-
-=begin
-a = Histogram.new([1,0,2,4,0,1])
-b = Histogram.new([4,2,1,0,0,1])
-c = Histogram.new([1,0,2,4,0,1])
-d = Histogram.new([0,15, 0,0,0 ,0])
-e = Histogram.new([0,0 , 0,0,10,0])
-f = Histogram.new([0,0 ,0,10,0 ,0])
-[0.5, 1, 2].each {|df|
-  puts "distance 2, discount factor: #{df}"
-  puts d.distance2_circular(e, df)
-  puts d.distance2_circular(f, df)
-}
-puts "euclidean:"
-puts d.distance_euclidean(e)
-puts d.distance_euclidean(f)
-puts "distance 1"
-puts d.distance1(e)
-puts d.distance1(f)
-=end

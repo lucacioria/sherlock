@@ -6,16 +6,15 @@ class TestHistogram < Minitest::Test
 
   def setup
     @h = Histogram.new([0,1,2,3,4,5,6,7,8])
-    @h1 = Histogram.new([0,1,0,1,0,1,0,1])
   end
 
   # test gaussian smooth
 
   def test_gaussian_smooth
     assert_equal [1.3775, 1.1778, 0.7551],
-      Histogram.new([1,2,0]).gaussian_smooth(1, false).map{|x| x.round(4)}
+      Histogram.new([1,2,0]).gaussian_smooth(1, false).data.map{|x| x.round(4)}
     assert_equal [1, 1.1778, 0.8222],
-      Histogram.new([1,2,0]).gaussian_smooth(1, true).map{|x| x.round(4)}
+      Histogram.new([1,2,0]).gaussian_smooth(1, true).data.map{|x| x.round(4)}
   end
 
   # test gaussian_array
