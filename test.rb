@@ -12,9 +12,23 @@ class TestHistogram < Minitest::Test
   # test gaussian smooth
 
   def test_gaussian_smooth
-    #### WORK IN PROGRESS ####
-    pp @h1.gaussian_smooth(1)
-    pp @h1.gaussian_smooth(1, true)
+    assert_equal [1.3775, 1.1778, 0.7551],
+      Histogram.new([1,2,0]).gaussian_smooth(1, false).map{|x| x.round(4)}
+    assert_equal [1, 1.1778, 0.8222],
+      Histogram.new([1,2,0]).gaussian_smooth(1, true).map{|x| x.round(4)}
+  end
+
+  # test gaussian_array
+
+  def test_gaussian_array
+    expected = [0.07408743850884664,
+                0.11884686185326673,
+                0.15780966649577996,
+                0.17345316539192726,
+                0.15780966649577996,
+                0.11884686185326673,
+                0.07408743850884664]
+    assert_equal expected, Histogram::gaussian_array(2.3, 3)
   end
 
   # test gaussian
