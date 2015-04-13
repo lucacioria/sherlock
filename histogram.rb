@@ -68,15 +68,15 @@ class Histogram
   # (Histogram, Histogram, float) => float
   # distance2 circular between the two histograms (as discrete pdfs)
   # note: here for benchmarking, doesn't work very well
-  def self.distance2_circular(a, b, discountFactor)
-    a.distance2_circular(b, discountFactor)
+  def self.distance2_circular(a, b, discount_factor)
+    a.distance2_circular(b, discount_factor)
   end
 
   # (Histogram, Histogram, float) => float
   # distance2 circular directional between the two histograms (as discrete pdfs)
   # note: here for benchmarking, doesn't work very well
-  def self.distance2_circular_directional(a, b, discountFactor)
-    a.distance2_circular_directional(b, discountFactor)
+  def self.distance2_circular_directional(a, b, discount_factor)
+    a.distance2_circular_directional(b, discount_factor)
   end
 
   # ===============================
