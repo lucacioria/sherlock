@@ -10,10 +10,15 @@ class Histogram
     @identifier = identifier
   end
 
+  # (float, int) => [float]
+  # returns an array filled with the value of the gaussian function
+  # starting from 0, going in integer steps to +size, -size
   def self.gaussian_array(sigma, size)
     (-size..size).map{|x| Histogram::gaussian(sigma, x)}
   end
 
+  # (float, float) => float
+  # computes the gaussian function
   def self.gaussian(sigma, x)
     Math.exp(-0.5*((x.to_f / sigma) ** 2)) / (sigma * Math.sqrt(2*Math::PI))
   end
