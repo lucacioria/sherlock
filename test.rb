@@ -17,6 +17,15 @@ class TestHistogram < Minitest::Test
       Histogram.new([1,2,0]).gaussian_smooth(1, true).data.map{|x| x.round(4)}
   end
 
+  # test exp discount
+  def test_exp_discount
+    h = Histogram.new([-1, 1, 0, 17])
+    assert_equal [-0.6065, 0.6065, 0, 10.3110],
+      h.exp_discount(0.5, 1).data.map{|x| x.round(4)}
+    assert_equal [-0.2231, 0.2231, 0, 3.7932],
+      h.exp_discount(0.5, 3).data.map{|x| x.round(4)}
+  end
+
   # test gaussian_array
 
   def test_gaussian_array

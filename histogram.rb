@@ -21,7 +21,7 @@ class Histogram
   # (float, int, float) => float
   # returns `value` discounted exponentially
   def self.exp_discount_value(value, steps, discount_factor)
-    value * exp(-discount_factor * steps)
+    value * Math.exp(-discount_factor * steps)
   end
 
   # (float, int) => [float]
@@ -118,6 +118,12 @@ class Histogram
       Histogram::weighted_avg(neighbours(size, i, circular), Histogram::gaussian_array(sigma, size))
     end
     Histogram.new(new_data)
+  end
+
+  # self, (float, int) => Histogram
+  # returns a new histograms with values exponentially discounted
+  def exp_discount(discount_factor, steps)
+    Histogram.new(self.data.map{|x| Histogram::exp_discount_value(x, steps, discount_factor)})
   end
 
   # see self.distance_city_blocks
