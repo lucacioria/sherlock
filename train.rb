@@ -18,7 +18,8 @@ module Train
   # ([float], float) => int
   def self.custom_intervals_binning(intervals, value)
     # intervals are inclusive left: [1,100)
-    intervals.find_index{|x| x > value} || intervals.length # || kicks in in case of nil, which means last bin
+    # the `||` kicks in in case of nil, which means last bin
+    intervals.find_index{|x| x > value} || intervals.length
   end
 
   # ([string], string) => int
@@ -52,15 +53,22 @@ module Train
       }
       [month, histogram]
     }.map{|x|
-      Profiles.new({user_id: user_id, month: x[0], histogram: x[1], profile_kind_id: profile_kind.id})
+      Profiles.new({user_id: user_transfers[0].user_id, month: x[0], histogram: x[1],
+                    profile_kind_id: profile_kind.id})
     }
   end
+
+  # ======================
+  # DB functions here
+  # ======================
 
   # READS FROM DB !!!
   # (int) => [Profile]
   def self.create_all_profiles_for_user(user_id)
     user_transfers = Transfers.where(user_id: user_id)
-    ProfileKinds.all.map{|profile_kind| create_profiles_for_user(user_id, user_transfers, profile_kind)}.flatten
+    ProfileKinds.all.map{|profile_kind|
+      create_profiles_for_user(user_transfers, profile_kind)
+    }.flatten
   end
 
   # WRITES ON DB !!!

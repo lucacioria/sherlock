@@ -190,15 +190,15 @@ class Histogram
   # self => string
   # string representation of a histogram
   def to_s
-    "H(#{@data.join ', '})"
+    "H(#{@data.map{|x| x.round(3)}.join ', '})"
   end
 
   # self, (float, boolean) => string
   # return a string representation of the histogram to be printend in the shell
   # representation is with horizontal bars
   def plot(size = 80, show_index = true)
-    to_s + "\n" + @data.map.with_index{|x,i|
-      ("%02d: " % i) + '#' * (x.to_f / data.max * size).to_i + (if x > 0 then " (#{x})" else "" end)
+    to_s + "\n" + (if @identifier then "[id: #{identifier}]\n" else '' end) + @data.map.with_index{|x,i|
+      ("%02d: " % i) + '#' * (x.to_f / data.max * size).to_i + (if x > 0 then " (#{x.round(3)})" else "" end)
     }.join("\n")
   end
 
