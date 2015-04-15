@@ -1,4 +1,5 @@
 require_relative 'histogram'
+require_relative 'util'
 require 'pp'
 require "minitest/autorun"
 
@@ -107,6 +108,16 @@ class TestHistogram < Minitest::Test
       @h.neighbours(9,5, true)
     end
     assert_equal "size too big", err.message
+  end
+
+end
+
+class TestUtil < Minitest::Test
+
+  def test_sliding_window
+    assert_equal [[nil, nil, 1], [nil, 1, 2], [1, 2, 3]], Util::sliding_window([1,2,3], 3)
+    assert_equal [[1], [2], [3]], Util::sliding_window([1,2,3], 1)
+    assert_equal [[nil, nil, 1], [nil, 1, 2]], Util::sliding_window([1,2], 3)
   end
 
 end

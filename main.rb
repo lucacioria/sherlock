@@ -4,6 +4,7 @@ require 'awesome_print'
 require 'pp'
 require 'commander'
 
+require_relative 'util'
 require_relative 'histogram'
 require_relative 'analysis'
 require_relative 'sherlock_db'
