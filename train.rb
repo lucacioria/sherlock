@@ -126,7 +126,9 @@ module Train
     Profiles.where(user_id: user_id).group_by(&:profile_kind_id).map {|pk_id, profiles|
       profile_kind = ProfileKinds.find(pk_id)
       c = profile_kind.config
-      Util::sliding_window(profiles, c[:window_size] || 3).map do |profiles_current_window|
+      profiles_with_empty_months_filled = Util::fill_empty_months(profiles)
+      Util::sliding_window(profiles_with_empty_months_filled,
+                           c[:window_size] || 3).map do |profiles_current_window|
         distance = temporal_distance(profiles_current_window.compact, profile_kind)
         profiles_current_window.last.distance = distance
         profiles_current_window.last

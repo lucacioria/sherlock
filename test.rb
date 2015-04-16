@@ -1,7 +1,10 @@
 require_relative 'histogram'
 require_relative 'util'
+require_relative 'sherlock_db'
 require 'pp'
 require "minitest/autorun"
+
+include SherlockDb
 
 class TestHistogram < Minitest::Test
 
@@ -118,6 +121,30 @@ class TestUtil < Minitest::Test
     assert_equal [[nil, nil, 1], [nil, 1, 2], [1, 2, 3]], Util::sliding_window([1,2,3], 3)
     assert_equal [[1], [2], [3]], Util::sliding_window([1,2,3], 1)
     assert_equal [[nil, nil, 1], [nil, 1, 2]], Util::sliding_window([1,2], 3)
+  end
+
+  def test_next_month
+    assert_equal "2014-07", Util::next_month("2014-06")
+    assert_equal "2014-12", Util::next_month("2014-11")
+    assert_equal "2015-01", Util::next_month("2014-12")
+  end
+
+  def test_list_months_in_between
+    assert_equal ["2014-03"], Util::list_months_in_between("2014-02", "2014-04")
+    assert_equal ["2014-03", "2014-04"], Util::list_months_in_between("2014-02", "2014-05")
+    assert_equal ["2014-11", "2014-12", "2015-01"],
+      Util::list_months_in_between("2014-10", "2015-02")
+    assert_equal [], Util::list_months_in_between("2014-02", "2014-03")
+  end
+
+  def test_fill_empty_months
+    profiles = Profiles.where({user_id: '00e902f9083c711620d48fd155945380', profile_kind_id: 1}).where("histogram regexp '[1-9]'")
+    filled = Util::fill_empty_months(profiles)
+    assert_equal 2, profiles.length
+    assert_equal 3, filled.length
+    assert_equal true, filled[1].histogram.all?{|x| x == 0}
+    assert_equal true, filled[1].profile_kind_id == filled[0].profile_kind_id
+    assert_equal true, filled[1].user_id == filled[0].user_id
   end
 
 end
