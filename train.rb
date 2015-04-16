@@ -27,8 +27,40 @@ module Train
     categories.find_index{|set| set.include? value} || categories.length
   end
 
-  # (int, [Transfer], ProfileKind) => [Profile]
-  def self.create_profiles_for_user(user_id, user_transfers, profile_kind)
+  # (Histogram, {}) => Histogram
+  def self.smooth(histogram, profile_kind)
+    c = profile_kind.config
+    if c[:smooth] then
+      histogram.gaussian_smooth(c[:sigma] || 1, !!c[:circular])
+    else
+      histogram
+    end
+  end
+
+  # ([Profile], ProfileKind) => float
+  # given a list of profiles and their profile kind, returns
+  # the distance of the last one to the past ones,
+  # exponentially discounted
+  def self.temporal_distance(profiles, profile_kind)
+    return 0 if profiles.length == 1
+    raise 'there must be at least 1 profile' if profiles.nil? || profiles.length == 0
+    c = profile_kind.config
+    last_histogram = Histogram.new(profiles.last.histogram)
+    last_histogram_smoothed = smooth(last_histogram, profile_kind)
+    distances = profiles[0...-1].map{|p|
+      h = Histogram.new(p.histogram)
+      smoothed = smooth(h, profile_kind)
+      smoothed.distance_euclidean(last_histogram_smoothed)
+    }
+    weights = (0...distances.size).map{|i|
+      Histogram::exp_discount_value(1, i, c[:discount_factor] || 0.5)
+    }.reverse
+    final_distance = Histogram::weighted_avg(distances, weights)
+    final_distance
+  end
+
+  # ([Transfer], ProfileKind) => [Profile]
+  def self.create_profiles_for_user(user_transfers, profile_kind)
     c = profile_kind.config
     user_transfers.group_by(&:month).map{|month, transfers|
       number_of_bins =
@@ -84,6 +116,36 @@ module Train
     Profiles.connection.execute('truncate table profiles')
     Transfers.distinct.pluck(:user_id).each_with_index{|user_id, i|
       save_all_profiles_for_user(user_id)
+      puts i if i % 100 == 0
+    }
+  end
+
+  # READS FROM DB !!!
+  # (int) => [Profile]
+  def self.compute_all_distances_for_user_profiles(user_id)
+    Profiles.where(user_id: user_id).group_by(&:profile_kind_id).map {|pk_id, profiles|
+      profile_kind = ProfileKinds.find(pk_id)
+      c = profile_kind.config
+      Util::sliding_window(profiles, c[:window_size] || 3).map do |profiles_current_window|
+        distance = temporal_distance(profiles_current_window.compact, profile_kind)
+        profiles_current_window.last.distance = distance
+        profiles_current_window.last
+      end
+    }.flatten
+  end
+
+  # WRITES ON DB !!!
+  # (int) => nil
+  def self.save_all_distances_for_user_profiles(user_id)
+    Profiles.where(user_id: user_id).update_all(distance: -1)
+    compute_all_distances_for_user_profiles(user_id).each(&:save)
+  end
+
+  # WRITES ON DB !!!
+  # () => nil
+  def self.save_all_distances()
+    Transfers.distinct.pluck(:user_id).each_with_index{|user_id, i|
+      save_all_distances_for_user_profiles(user_id)
       puts i if i % 100 == 0
     }
   end

@@ -65,7 +65,6 @@ class Sherlock
     end
 
     command 'create-profiles' do |c|
-      c.syntax = 'init profile-kinds'
       c.description = 'create profiles for each profile kind'
       c.option '--user-id STRING', String
       c.option '--all'
@@ -79,9 +78,35 @@ class Sherlock
       end
     end
 
+    command 'create-distances' do |c|
+      c.description = 'compute distances of profiles'
+      c.option '--user-id STRING', String
+      c.option '--all'
+      c.action do |args, options|
+        raise 'specify a user-id or --all' if options.user_id.nil? and !options.all
+        if options.all
+          Train::save_all_distances()
+        else
+          Train::save_all_distances_for_user_profiles(options.user_id)
+        end
+      end
+    end
+
     command :test do |c|
       c.action do |args, options|
-        pp Train::create_all_profiles_for_user('002bce3fc82152b2aa23a0d955fd9603')
+        #profiles = Profiles.where(user_id: '113f0e2826eb7a4c5408e7d211825a79', profile_kind_id: 1)
+          #.order(:month)
+        #profiles.each{|p|
+          #h = Histogram.new(p.histogram, p.month)
+          #hs = h.gaussian_smooth(1, false)
+          #puts h.plot.lines.zip(hs.plot.lines).map{|x|x[0].gsub("\n",'').ljust(100)+x[1].to_s}
+          #puts '#####'
+        #}
+        #Train::temporal_distance(profiles, ProfileKinds.find(1))
+
+        #pp Train::compute_all_distances_for_user_profiles('113f0e2826eb7a4c5408e7d211825a79')
+
+        Train::save_all_distances_for_user_profiles('113f0e2826eb7a4c5408e7d211825a79')
       end
     end
 
