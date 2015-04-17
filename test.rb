@@ -27,6 +27,7 @@ class TestHistogram < Minitest::Test
   def test_normalize
     assert_equal [0.2, 0.4, 0.4], Histogram.new([3,6,6]).normalize.data
     assert_equal [0.2, 0.4, 0.4], Histogram.new([1.3,2.6,2.6]).normalize.data
+    assert_equal [0, 0], Histogram.new([0, 0]).normalize.data
   end
 
   # test gaussian smooth

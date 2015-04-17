@@ -192,7 +192,11 @@ class Histogram
   # normalize so that sum is 1.0
   def normalize
     sum = @data.reduce(&:+)
-    Histogram.new(@data.map{|x| x.to_f / sum}, @identifier)
+    if sum > 0
+      Histogram.new(@data.map{|x| x.to_f / sum}, @identifier)
+    else
+      self
+    end
   end
 
   # self => string
