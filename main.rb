@@ -10,6 +10,7 @@ require_relative 'analysis'
 require_relative 'sherlock_db'
 require_relative 'train'
 require_relative 'sherlock_init'
+require_relative 'graph'
 
 include Math
 include SherlockDb
@@ -88,6 +89,19 @@ class Sherlock
           Train::save_all_distances()
         else
           Train::save_all_distances_for_user_profiles(options.user_id)
+        end
+      end
+    end
+
+    command 'graph' do |c|
+      c.option '--user-id STRING', String
+      c.option '--all'
+      c.action do |args, options|
+        raise 'specify a user-id or --all' if options.user_id.nil? and !options.all
+        if options.all
+          Graph::save_user_amount_report
+        else
+          #Graph::user_profiles(options.user_id)
         end
       end
     end

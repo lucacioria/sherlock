@@ -37,6 +37,27 @@ module Train
     end
   end
 
+  # (ProfileKind) => [String]
+  # returns all bins as list of strings, to use as labels
+  def self.get_bins_as_strings(profile_kind)
+    c = profile_kind.config
+    case c[:binning]
+    when 'log'
+      raise 'LOG lables not implemented yet!'
+    when 'linear'
+      step = (c[:max_value] - c[:min_value]) / c[:number_of_bins].to_f
+      (0...c[:number_of_bins]).map {|i|
+        left = c[:min_value] + i * step
+        right = c[:min_value] + (i + 1) * step
+        "%d..%d" % [left, right]
+      }
+    when 'custom_intervals'
+      c[:intervals].map(&:to_s) + ['> '+ c[:intervals].last.to_s]
+    when 'categorical'
+      raise 'CATEGORICAL lables not implemented yet!'
+    end
+  end
+
   # ([Profile], ProfileKind) => float
   # given a list of profiles and their profile kind, returns
   # the distance of the last one to the past ones,

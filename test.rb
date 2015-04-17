@@ -1,4 +1,5 @@
 require_relative 'histogram'
+require_relative 'train'
 require_relative 'util'
 require_relative 'sherlock_db'
 require 'pp'
@@ -145,6 +146,15 @@ class TestUtil < Minitest::Test
     assert_equal true, filled[1].histogram.all?{|x| x == 0}
     assert_equal true, filled[1].profile_kind_id == filled[0].profile_kind_id
     assert_equal true, filled[1].user_id == filled[0].user_id
+  end
+
+end
+
+class TestTrain < Minitest::Test
+
+  def test_get_bins_as_strings
+    # custom intervals
+    assert_equal ['100','200','300','450','600','900','1200','1700','3300','4000','5000','6500','10000','20000','> 20000'], Train::get_bins_as_strings(ProfileKinds.find(1))
   end
 
 end
