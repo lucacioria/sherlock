@@ -39,6 +39,16 @@ class TestHistogram < Minitest::Test
       Histogram.new([1,2,0]).gaussian_smooth(1, true).data.map{|x| x.round(4)}
   end
 
+  def test_gaussian_smooth_and_normalize
+    # after smoothing the total sum is more or less the same..
+    # some error exists on 2nd decimal
+    h = Histogram.new([2, 3, 1.8]).normalize
+    assert_equal 1, h.gaussian_smooth(1, false).data.reduce(&:+).round(1)
+    assert_equal 1, h.gaussian_smooth(1, true).data.reduce(&:+).round(1)
+    assert_equal 1, h.gaussian_smooth(0.7, true).data.reduce(&:+).round(1)
+    assert_equal 1, h.gaussian_smooth(2.7, true).data.reduce(&:+).round(1)
+  end
+
   # test exp discount
   def test_exp_discount
     h = Histogram.new([1, 0, 17])
