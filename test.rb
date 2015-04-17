@@ -13,6 +13,22 @@ class TestHistogram < Minitest::Test
     @h = Histogram.new([0,1,2,3,4,5,6,7,8])
   end
 
+  # test initialization
+
+  def test_initialize
+    err = assert_raises RuntimeError do
+      Histogram.new([-1,3])
+    end
+    assert_equal "contains negative values", err.message
+  end
+
+  # test normalize
+
+  def test_normalize
+    assert_equal [0.2, 0.4, 0.4], Histogram.new([3,6,6]).normalize.data
+    assert_equal [0.2, 0.4, 0.4], Histogram.new([1.3,2.6,2.6]).normalize.data
+  end
+
   # test gaussian smooth
 
   def test_gaussian_smooth
@@ -24,10 +40,10 @@ class TestHistogram < Minitest::Test
 
   # test exp discount
   def test_exp_discount
-    h = Histogram.new([-1, 1, 0, 17])
-    assert_equal [-0.6065, 0.6065, 0, 10.3110],
+    h = Histogram.new([1, 0, 17])
+    assert_equal [0.6065, 0, 10.3110],
       h.exp_discount(0.5, 1).data.map{|x| x.round(4)}
-    assert_equal [-0.2231, 0.2231, 0, 3.7932],
+    assert_equal [0.2231, 0, 3.7932],
       h.exp_discount(0.5, 3).data.map{|x| x.round(4)}
   end
 

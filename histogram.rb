@@ -8,6 +8,7 @@ class Histogram
   # Histograms cannot change once created
   @data = []
   def initialize(data, identifier = nil)
+    raise 'contains negative values' if data.any?{|x| x < 0}
     @data = data
     @data.freeze
     @identifier = identifier
@@ -185,6 +186,13 @@ class Histogram
     }.reduce(:+)
     puts "similarity: #{similarity}" if debug
     difference
+  end
+
+  # self => Histogram
+  # normalize so that sum is 1.0
+  def normalize
+    sum = @data.reduce(&:+)
+    Histogram.new(@data.map{|x| x.to_f / sum}, @identifier)
   end
 
   # self => string
