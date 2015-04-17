@@ -62,7 +62,7 @@ module Train
   # given a list of profiles and their profile kind, returns
   # the distance of the last one to the past ones,
   # exponentially discounted
-  def self.temporal_distance(profiles, profile_kind)
+  def self.temporal_distance(profiles, profile_kind, normalized = false)
     return 0 if profiles.length == 1
     raise 'there must be at least 1 profile' if profiles.nil? || profiles.length == 0
     c = profile_kind.config
@@ -71,7 +71,11 @@ module Train
     distances = profiles[0...-1].map{|p|
       h = Histogram.new(p.histogram)
       smoothed = smooth(h, profile_kind)
-      smoothed.distance_euclidean(last_histogram_smoothed)
+      if normalized
+        smoothed.normalize.distance_euclidean(last_histogram_smoothed.normalize)
+      else
+        smoothed.distance_euclidean(last_histogram_smoothed)
+      end
     }
     weights = (0...distances.size).map{|i|
       Histogram::exp_discount_value(1, i, c[:discount_factor] || 0.5)
@@ -151,7 +155,9 @@ module Train
       Util::sliding_window(profiles_with_empty_months_filled,
                            c[:window_size] || 3).map do |profiles_current_window|
         distance = temporal_distance(profiles_current_window.compact, profile_kind)
+        normalized_distance = temporal_distance(profiles_current_window.compact, profile_kind, true)
         profiles_current_window.last.distance = distance
+        profiles_current_window.last.normalized_distance = normalized_distance
         profiles_current_window.last
       end
     }.flatten

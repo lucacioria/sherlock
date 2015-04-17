@@ -25,7 +25,8 @@ module Graph
     g.label_max_size = 5
     g.marker_font_size = 10
     g.margins = 40
-    g.data "#{profile.month} - distance: #{profile.distance}", profile.histogram
+    data_label = "#{profile.month} - distance: #{profile.distance} (#{profile.normalized_distance})"
+    g.data data_label, profile.histogram
     g.write("plots/profiles/profile_#{profile.id}.png")
   end
 

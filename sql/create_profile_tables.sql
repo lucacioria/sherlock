@@ -13,6 +13,7 @@ CREATE TABLE `profiles` (
   `month` char(7) NOT NULL,
   `histogram` text NOT NULL,
   `distance` float DEFAULT NULL,
+  `normalized_distance` float DEFAULT NULL,
   KEY `user_id` (`user_id`),
   KEY `profile_kind_id` (`profile_kind_id`)
 );
