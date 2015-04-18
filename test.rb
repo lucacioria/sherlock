@@ -169,8 +169,8 @@ class TestUtil < Minitest::Test
     profiles = Profiles.where({user_id: '00e902f9083c711620d48fd155945380', profile_kind_id: 1})
       .where("histogram regexp '[1-9]'")
     filled = Util::fill_empty_months(profiles)
-    assert_equal 2, profiles.length
-    assert_equal 3, filled.length
+    assert_equal 3, profiles.length
+    assert_equal 25, filled.length
     assert_equal true, filled[1].histogram.all?{|x| x == 0}
     assert_equal true, filled[1].profile_kind_id == filled[0].profile_kind_id
     assert_equal true, filled[1].user_id == filled[0].user_id

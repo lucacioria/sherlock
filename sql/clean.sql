@@ -28,9 +28,19 @@ create table transfers (
   `user_country` varchar(45) NOT NULL,
   `user_asn` varchar(45) NOT NULL,
   `session_id` varchar(200) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`)
 );
 
+-- dump 2012-12 2013-09
+insert into transfers (
+  user_ip, session_id, timestamp, month, hour, transfer_type, amount, error_message, user_id, beneficiary_iban, beneficiary_name, sms_confirmation_active, beneficiary_country, user_country, user_asn
+) select
+IP, IDSessione, Timestamp, date_format(Timestamp, '%Y-%m'), hour(Timestamp), TipoOperazione, Importo, MsgErrore, UserID, IBAN, Nominativo, IF(NumConfermaSMS = 'Si', 1, 0),
+IBAN_CC, SPLIT_STR(CC_ASN, ',', 1), SPLIT_STR(CC_ASN, ',', 2)
+from bonifici;
+
+-- dump 2014-10 2015-02
 insert into transfers (
   user_ip, session_id, timestamp, month, hour, transfer_type, amount, error_message, user_id, beneficiary_iban, beneficiary_name, sms_confirmation_active, beneficiary_country, user_country, user_asn
 ) select
@@ -44,11 +54,3 @@ CREATE VIEW user_analysis AS
 select user_id, count(1) number_of_transfers, sum(amount) total_amount
 from transfers
 group by user_id;
-
--- create empty anomalies tables
--- drop table if exists user_hour_anomaly;
--- create table user_hour_anomaly (
-  -- userId varchar(45) NOT NULL,
-  -- month int not null,
-  -- anomaly float not null
--- )
