@@ -1,5 +1,9 @@
 module Train
 
+  DISCOUNT_FACTOR = 0.5
+  WINDOW_SIZE = 3
+  SIGMA = 1
+
   # (float, float, float, float) => int
   def self.log_binning(min, max, steps, value)
     # find log base such as to divide range in correct n. of steps
@@ -58,30 +62,16 @@ module Train
     end
   end
 
-  # ([Profile], ProfileKind) => float
-  # given a list of profiles and their profile kind, returns
-  # the distance of the last one to the past ones,
-  # exponentially discounted
-  def self.temporal_distance(profiles, profile_kind, normalized = false)
-    return 0 if profiles.length == 1
-    raise 'there must be at least 1 profile' if profiles.nil? || profiles.length == 0
-    c = profile_kind.config
-    last_histogram = Histogram.new(profiles.last.histogram)
-    last_histogram_smoothed = smooth(last_histogram, profile_kind)
-    distances = profiles[0...-1].map{|p|
-      h = Histogram.new(p.histogram)
-      smoothed = smooth(h, profile_kind)
-      if normalized
-        smoothed.normalize.distance_euclidean(last_histogram_smoothed.normalize)
-      else
-        smoothed.distance_euclidean(last_histogram_smoothed)
-      end
-    }
-    weights = (0...distances.size).map{|i|
-      Histogram::exp_discount_value(1, i, c[:discount_factor] || 0.5)
-    }.reverse
-    final_distance = Histogram::weighted_avg(distances, weights)
-    final_distance
+  # (Histogram, Histogram, ProfileKind, boolean) => float
+  # compute distance between two histograms
+  def self.compute_distance(h1, h2, profile_kind, normalized = false)
+    h1_smoothed = smooth(h1, profile_kind)
+    h2_smoothed = smooth(h2, profile_kind)
+    if normalized
+      h1_smoothed.normalize.distance_euclidean(h2_smoothed.normalize)
+    else
+      h1_smoothed.distance_euclidean(h2_smoothed)
+    end
   end
 
   # ([Transfer], ProfileKind) => [Profile]
@@ -108,11 +98,19 @@ module Train
         h[bin] += 1
         h
       }
-      [month, histogram]
+      [month, histogram, transfers.length]
     }.map{|x|
       Profiles.new({user_id: user_transfers[0].user_id, month: x[0], histogram: x[1],
-                    profile_kind_id: profile_kind.id})
+                    profile_kind_id: profile_kind.id, n_transfers: x[2]})
     }
+  end
+
+  # ([Profile], ProfileKind) => Histogram
+  # returns the average histogram of previous profiles, exp discounted based on config
+  def self.compute_average_histogram(profiles, profile_kind)
+    c = profile_kind.config
+    histograms = profiles.map{|p| Histogram.new(p.histogram)}
+    Histogram::exp_discounted_average(histograms, c[:discount_factor] || DISCOUNT_FACTOR)
   end
 
   # ======================
@@ -154,11 +152,49 @@ module Train
       profiles_with_empty_months_filled = Util::fill_empty_months(profiles)
       Util::sliding_window(profiles_with_empty_months_filled,
                            c[:window_size] || 3).map do |profiles_current_window|
-        distance = temporal_distance(profiles_current_window.compact, profile_kind)
-        normalized_distance = temporal_distance(profiles_current_window.compact, profile_kind, true)
-        profiles_current_window.last.distance = distance
-        profiles_current_window.last.normalized_distance = normalized_distance
-        profiles_current_window.last
+        p = profiles_current_window.last
+        if profiles_current_window.compact.length > 1
+          average_histogram = compute_average_histogram(profiles_current_window[0...-1].compact,
+                                                        profile_kind)
+          p.average_histogram = average_histogram.data
+          p.distance = compute_distance(Histogram.new(p.histogram), average_histogram, profile_kind)
+          p.normalized_distance = compute_distance(Histogram.new(p.histogram), average_histogram,
+                                                   profile_kind, true)
+        end
+        p
+      end
+    }.flatten
+  end
+
+  # READS FROM DB !!!
+  # (int) => [Profile]
+  def self.compute_all_variances_for_user_profiles(user_id)
+    Profiles.where(user_id: user_id).group_by(&:profile_kind_id).map {|pk_id, profiles|
+      profile_kind = ProfileKinds.find(pk_id)
+      c = profile_kind.config
+      #puts profile_kind.name
+      profiles_to_consider = profiles.sort{|x,y| x.month <=> y.month}[1..-1]
+      Util::sliding_window(profiles_to_consider,
+                           2 * (c[:window_size] || 3)).map do |profiles_current_window|
+        p = profiles_current_window.last
+        ps = profiles_current_window[0...-1].compact
+        if ps.length >= (c[:window_size] || 3)
+          # average and standard deviation for distance
+          p.average = ps.map(&:distance).reduce(&:+) / ps.length
+          p.standard_deviation = Math.sqrt(ps.map{|x|
+            raise 'computing average of distances over undefined distances!' if x.distance.nil?
+            (x.distance - p.average) ** 2
+          }.reduce(&:+))
+          # average and standard deviation for normalized distance
+          p.normalized_average = ps.map(&:normalized_distance).reduce(&:+) / ps.length
+          p.normalized_standard_deviation = Math.sqrt(ps.map{|x|
+            if x.normalized_distance.nil?
+              raise 'computing normalized average of distances over undefined distances!'
+            end
+            (x.normalized_distance - p.normalized_average) ** 2
+          }.reduce(&:+))
+        end
+        p
       end
     }.flatten
   end
@@ -166,8 +202,14 @@ module Train
   # WRITES ON DB !!!
   # (int) => nil
   def self.save_all_distances_for_user_profiles(user_id)
-    Profiles.where(user_id: user_id).update_all(distance: -1)
+    Profiles.where(user_id: user_id).update_all({
+      distance: nil,
+      normalized_distance: nil,
+      average: nil,
+      standard_deviation: nil,
+    })
     compute_all_distances_for_user_profiles(user_id).each(&:save)
+    compute_all_variances_for_user_profiles(user_id).each(&:save)
   end
 
   # WRITES ON DB !!!
