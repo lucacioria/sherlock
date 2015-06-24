@@ -54,6 +54,21 @@ class Histogram
     totals[:v] / totals[:w].to_f
   end
 
+  # ([Histogram], float) => Histogram
+  # creates average histograms averaging a list of histograms with exp discount
+  def self.exp_discounted_average(histograms, discount_factor)
+    require 'pp'
+    raise 'nil histogram in list of histograms to average' if histograms.any?{|x|x.nil?}
+    raise 'empty list of histograms to average' if histograms.length == 0
+    return histograms.first if histograms.length == 1
+    weights = (0...histograms.size).map{|i|
+      Histogram::exp_discount_value(1, i, discount_factor)
+    }.reverse
+    new_data = histograms.map(&:data).transpose.map{|xs| Histogram::weighted_avg(xs, weights)}
+    raise 'average histogram contains errors' if new_data.length != histograms.first.data.length
+    Histogram.new(new_data)
+  end
+
   # (Histogram, Histogram) => float
   # city block distance between the two histograms (as vectors)
   def self.distance_city_blocks(a, b)
@@ -114,7 +129,7 @@ class Histogram
   # self, (float, boolean) => Histogram
   # return a smothed histogram without modifying the current one
   def gaussian_smooth(sigma, circular=false)
-    size = [sigma * 3, self.data.length / 2].min
+    size = [sigma * 3, self.data.length / 2].min.to_i
     new_data = self.data.map.with_index do |v, i|
       Histogram::weighted_avg(neighbours(size, i, circular), Histogram::gaussian_array(sigma, size))
     end
