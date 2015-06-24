@@ -28,6 +28,7 @@ module SherlockDb
 
   class Profiles < ActiveRecord::Base
     serialize :histogram
+    serialize :average_histogram
   end
 
   class ProfileKinds < ActiveRecord::Base

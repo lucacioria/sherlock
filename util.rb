@@ -51,4 +51,17 @@ module Util
     }
   end
 
+  # (Profile) => float
+  # anomaly
+  def self.compute_anomaly(p, normalized = false)
+    return nil if p.average.nil?
+    anomaly = if normalized
+      ((p.normalized_distance - p.normalized_average) /
+                 p.normalized_standard_deviation).round(1)
+    else
+      [0.0, ((p.distance - p.average) / p.standard_deviation).round(1)].max
+    end
+    if anomaly < 0 then 0 else anomaly end
+  end
+
 end

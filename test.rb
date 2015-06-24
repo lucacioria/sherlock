@@ -104,6 +104,16 @@ class TestHistogram < Minitest::Test
     assert_equal "value and weight arrays are of different lengths", err.message
   end
 
+  # def test exp_discounted_average
+
+  def test_exp_discounted_average
+    a = Histogram.new([10,20,30])
+    b = Histogram.new([3,0,100])
+    c = Histogram.new([1,2,3])
+    h = Histogram::exp_discounted_average([a, b, c], 0.5)
+    assert_equal [3.291, 4.739, 37.829], h.data.map{|x| x.round(3)}
+  end
+
   # test neighbours
 
   def test_center

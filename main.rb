@@ -99,9 +99,9 @@ class Sherlock
       c.action do |args, options|
         raise 'specify a user-id or --all' if options.user_id.nil? and !options.all
         if options.all
-          Graph::save_user_amount_report
+          Graph::save_amount_report
         else
-          #Graph::user_profiles(options.user_id)
+          Graph::save_user_amount_report(options.user_id)
         end
       end
     end
