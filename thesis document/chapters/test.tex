@@ -1,0 +1,136 @@
+% !TEX root =  ../thesis.tex
+
+
+To test our temporal profile analysis system, we focused on a few scenarios where the typical local profile analysis would fall short and tried to see if the temporal analysis could help in identifying anomalous transactions. Our tests are based on a mixture of real data, taken from the transaction databased made available by our bank partner, and syntetic data. Syntetic data is used mainly to inject transactions that should be recognized as frauds, and in certain cases to create specific speding profiles to test.
+
+\section{Detection of normal amount transactions}
+
+This test is designed to spot anomalous behaviors in the number of transactions. We take a user that performs on average 30 transactions per month, with an amount linearly distributed between 0 and 5000 euros. We then inject 10 transactions in a specific month, having an amount of 50 euros. These transactions will not be considered suspicious by the local profile analysis because they fall in the range of normality with respect to their amount. Also, the previous temporal analysis system, as defined in banksealer~\cite{banksealer}, is not really able to detect the problem because it only analyzes the total number of transactions. The addition of 10 transactions in a month to a user that had, in the past, between 20 and 40 transactions per month, is not enough to trigger the old temporal profile system.
+
+We ran the test on syntetic data, generating 100 users that would match this spending profile, and injecting in all of them anomalous transactions as explained above. The results of the test depend heavily on the sensitivity thresholds used. In table \ref{tab:conf_1_06} we see the confusion matrix resulting from a threshold $\alpha = 0.6$. The first thing to evaluate is the \textbf{recall}:
+\begin{displaymath}
+\text{recall} = \text{TP} / (\text{TP} + \text{FN}) = 66\%
+\end{displaymath}
+We refer to true positives as $\text{TP}$, false negatives as $\text{FN}$ and so on.
+The recall, while not perfect, is in itself a good sign and can certainly be useful when combined with the other analysis methods. However, the precision of the system is, as expected, less than optimal:
+\begin{displaymath}
+\text{precision} = \text{TP} / (\text{TP} + \text{FP}) = 52\%
+\end{displaymath}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 66\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 60\end{tabular}}} &  &  &  \\ \cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false negative\\ 34\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true negative\\ 1040\end{tabular}}} &  &  &  \\ \cline{1-2}
+ &  &  &  &  \\
+ &  &  &  &
+\end{tabular}
+\caption{Confusion matrix for $\alpha = 0.6$}
+\label{tab:conf_1_06}
+\end{table}
+
+We will now see how changing the threshold affects these measures.
+
+\subsection{How to choose a threshold value}
+
+In the precedent paragraph we tested the accuracy and recall of our system with a threshold of $0.6$. This threshold has been chosen because it maximizes the \textbf{F1 score}, which is the harmonic mean of precision and recall:
+\begin{displaymath}
+F_1 = 2 \cdot \frac{\mathrm{precision} \cdot \mathrm{recall}}{\mathrm{precision} + \mathrm{recall}}
+\end{displaymath}
+
+This measure is a good indicator of a balance between precision and recall, which tries to be general, but is not optimal for our situation. In particular, we consider recall more important than precision, because we want in the end to signal almost all transactions that could be interesting, and we are prepared to lose some ground on the number of false positives, thus reducing precision.
+
+In tables \ref{tab:conf_1_07} and \ref{tab:conf_1_05} we see how the numbers change with a shift of $+0.1, -0.1$ on our threshold parameter.
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 75\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 92\end{tabular}}} &  &  &  \\ \cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false negative\\ 25\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true negative\\ 1008\end{tabular}}} &  &  &  \\ \cline{1-2}
+ &  &  &  &  \\
+ &  &  &  &
+\end{tabular}
+\caption{Confusion matrix for $\alpha = 0.5$. Recall = $75\%$, precision = $45\%$}
+\label{tab:conf_1_05}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 59\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 49\end{tabular}}} &  &  &  \\ \cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false negative\\ 41\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true negative\\ 1051\end{tabular}}} &  &  &  \\ \cline{1-2}
+ &  &  &  &  \\
+ &  &  &  &
+\end{tabular}
+\caption{Confusion matrix for $\alpha = 0.7$. Recall = $59\%$, precision = $55\%$}
+\label{tab:conf_1_07}
+\end{table}
+
+\subsection{conclusions}
+
+This test shows promising results, with good recall and precision with the appropriate threshold. The main limitation of this experiment concerns its generality, since the tuning of the threshold parameter over a singe test case can lead to overfitting and might not yield a general solution.
+
+In the next section we will perform a second test that considers the feature `amount' and applies a few variations to the previous one, in order to test the sensitivity of the results to the value of the threshold parameter.
+
+\section{Testing on real user data}
+
+In the previous test we generated both the user behavior and the frauds. This was done to analyze specifically a situation that was difficult to detect with the previous temporal analysis system, and that our system managed to imporove. We will now switch to real user data with generated frauds. The fraud structure is the same: a series of small transactions, between 8 and 16 transactions injected in a single month. The amount of these transactions is between 20 and 50 euros, and will therefore be categorized in the first bin of the amount feature.
+
+\subsection{Selection of users}
+In order to be as much as possible unbiased, we run the analysis on a large pool of users that were randomly selected from the database, taking from the users that had a sufficient number of transactions over 5 months. The users have very different spending profiles: some of them are similar to the generated users in the last analysis, spending mostly small amounts, others perform only a few transfers and of higher amounts.
+
+In the end, we selected 904 users for this test and injected frauds in 456 of them, leaving the other 448 untouched.
+
+\subsection{Results of the test}
+We start describing the results using the same value for the threshold parameter that we used in the previous test: $\alpha = 0.6$. Then, we show how the results change based on the value of $\alpha$ in order to assess the generality of the system.
+
+In table \ref{tab:conf_2_06} we see that we obtained a slightly better recall than last time at about $74\%$. The precision has increased considerably, being now $88\%$. The improvement with respect to before can be justified by the fact that our first test was run against a set of generated users that was intended to make the detection more difficult. The users all had spending behaviors that made the fraud transactions normal. In addition to that, the total number of transactions was such that anomalous months could not be detected just by the shift in the overall number of transactions.
+
+Testing now in a real world situation, we include users with behaviors that make the frauds stand out more clearly, and therefore improved our overall performance.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 339\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 47\end{tabular}}} &  &  &  \\ \cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false negative\\ 117\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true negative\\ 401\end{tabular}}} &  &  &  \\ \cline{1-2}
+ &  &  &  &  \\
+ &  &  &  &
+\end{tabular}
+\caption{Confusion matrix for $\alpha = 0.6$. Recall = $74\%$, precision = $88\%$}
+\label{tab:conf_2_06}
+\end{table}
+
+\subsection{Sensitivity to the threshold parameter}
+
+In tables \ref{tab:conf_2_04} and \ref{tab:conf_2_08} we show the confusion matrices with the threshold parameter value modified by $0.2$. The results in this situation are not very sensitive to such deviations, and while the F1 score is maximised at around $\alpha = 0.3$ the variations are minimal. This is probably due to the greater variance of spending profiles, and therefore selecting a value that leads to overfitting is much less likely. In our last test, the opposite was true, and that is why the sensitivity was higher.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 360\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 60\end{tabular}}} &  &  &  \\ \cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false negative\\ 96\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true negative\\ 388\end{tabular}}} &  &  &  \\ \cline{1-2}
+ &  &  &  &  \\
+ &  &  &  &
+\end{tabular}
+\caption{Confusion matrix for $\alpha = 0.4$. Recall = $79\%$, precision = $86\%$}
+\label{tab:conf_2_04}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 318\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 37\end{tabular}}} &  &  &  \\ \cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false negative\\ 138\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true negative\\ 411\end{tabular}}} &  &  &  \\ \cline{1-2}
+ &  &  &  &  \\
+ &  &  &  &
+\end{tabular}
+\caption{Confusion matrix for $\alpha = 0.8$. Recall = $70\%$, precision = $89\%$}
+\label{tab:conf_2_08}
+\end{table}

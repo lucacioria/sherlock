@@ -1,0 +1,88 @@
+% !TEX root =  ../thesis.tex
+
+\section{Introduction}
+
+This chapter will provide a general introduction to the design of Em, Ex and Es GUIs and how they integrate with the application logic. A general description of the three languages is given, and for each one there will be a dedicated chapter. Although the following chapters are conceptually distinct, they should be read in order since each builds on the previous one.
+
+Em, Ex and Es are three languages that work together to specify interactive GUIs. Em defines the hierarchical structure of the elements in the GUI. It also defines the possible interactions with the user (clicks\ldots). Ex specifies the layout, where and how big the elements and containers are, and how they adapt to different devices. Es is a styling language to add colors, fonts, borders and a few other graphical properties to the interface.
+
+\subsection{declarative languages}
+\label{design:declarative_languages}
+Em, Ex and Es are declarative languages: you cannot implement any program logic (except for the predefined actions) in these languages, the GUI only acts as a frontend for the program logic. This is done for two main reasons: firstly, client side logic is a security threat. The interface functioning could be in some way altered so as to show unexpected behaviors. Moreover, having client side logic makes it much more difficult for the server (program logic) to keep track of the application state, introducing potential risks (the server executes actions while believing the remote interface to be in a particular state, which has been modified by malicious client side code).
+
+The second reason is separation of concerns, and the resulting ease of use and clear organization of the application. As we keep structure, layout and style clearly separated, we have the program logic centralized on the server and not mixed with the interface definition.
+
+\subsection{application workflow}
+
+This list explains the basic execution workflow of an application that uses Em, Ex and Es as GUI fronted. The architecture is server/client, where the client only displays the interface and sends interaction events (clicks\ldots) back to the server, where all the real logic is coded, as explained in \ref{design:declarative_languages}. Even though these two components are separate, it does not mean that they should be physically apart (remote). The server and the client could easily be running on the same, local machine.
+
+\begin{enumerate}
+    \item SERVER sends complete Em, Ex and Es documents to CLIENT
+    \item GUI is rendered by CLIENT
+    \item GUI LOOP
+        \begin{enumerate}
+            \item user interactions trigger events that are sent to the SERVER
+            \item is the event is relevant, the SERVER responds with a series of edit commands over the Em,Ex and Es documents
+            \item the CLIENT applies the edits and renders the updated GUI
+        \end{enumerate}
+\end{enumerate}
+
+\section{Structure, Layout and Style: three levels of GUI design}
+
+Em, Ex and Es provide a clean and effective way to separate the most semantic aspects of an interface from those related only to style and visual appearence. There are three levels at which we operate:
+\begin{enumerate}
+    \item STRUCTURE (Em): defines a hierarchy of Em elements with semantic meaning. Elements that are related to each other will generally be under the same parent in the hierarchy. The structure by itself does not provide a clean layout of the UI, but it provides the general organization of the elements. An example of structure would be a panel containing text fields and buttons (e.g.: a data insertion form). We know they belong to the panel, but we don't know where and how exactly they will be drawn on the screen.
+    \item LAYOUT (Ex): specifies the actual positioning of all elements. it is connected with the structure by means of classes and IDs. This file is not strictly semantic, but it is necessary to create a consistent and meaningful UI, and also one that is able to adapt to different display sizes. If very different targets are to be taken into consideration (laptop, tablet, smartphone) a layout file specific for each one of those can be written. The end user will have some limited control over the layout (resizing panels and similar actions)
+    \item STYLE (Es): describes the more stylistic aspects of the application: colors, fonts and all those visual characteristics that are not essential but can be very beneficial. The end user will have a lot of control over the styling part, being able to change size, fonts, colors to better fit her needs.
+\end{enumerate}
+
+\subsection{Em: structure}
+
+As previously mentioned, the structure is a hierarchical representation (tree) of all the elements in the interface. Every internal node of the tree represents a rectangular container, called \textbf{frame}, while all leaves are \textbf{components} (labels, buttons\ldots see \ref{sec:em_elements} for details). Frames are the building blocks of the interface: they group related components together, such as the text fields in a form, and can be in turn part of a bigger group. Frames are also the key elements in laying out the interface, as explained later (see \ref{design:ex} for details).
+
+The end user has no control over this structure, it is defined by the programmer and is the same across all devices and users.
+
+\subsection{Ex: layout}
+\label{design:ex}
+
+The layout is specified assigning properties to the frames in the structure. These properties are applied using selectors (explained later in \ref{sec:selectors}) and are a declarative expression of how the frames should behave. We do not, in general, specify exact positions and dimensions, but rather write general properties such as \textit{expand horizontally} or \textit{all buttons should have the same width}, using the available commands that will be explained in depth in a later chapter.
+
+While the layout can adapt to changes in display size, it should be tailored for the target device category (laptop, tablet, phone..) in order to optimize the user experience (for example, switching from a 2 columns layout on a laptop to a single column one on a smartphone).
+
+The user does not have direct control over the layout file, but certain properties can optionally be customized (panel sizes and positions).
+
+\subsection{Es: style}
+\label{design:es}
+
+The style file is structured exactly as the layout file, assigning properties to frames and components using selectors. The difference is in the kind of properties, which in this case are explicit requests regarding the visual appearence of such elements. For example, we might write that the buttons have a \textit{red background}, or that the font will be \textit{helvetica}.
+
+The end user will have a lot of control over the styling part, being able to change size, fonts, colors to better fit her needs.
+
+\section{Syntax}
+\label{sec:design_syntax}
+The following chapter will provide specifications and extensive examples of Em, Ex and Es. As explained before, these documents are declarative and can easily be represented by a text format such as JSON. In an actual implementation, JSON may or may not be used as an encoding format. Other formats (XML, custom binary formats..) could be used instead for various reasons, but for the scope of this thesis JSON is a suitable choice, since it easy to read and short. I will now provide a general introduction to JSON and how it will be used in the coming chapters.
+
+Json is a simple data format, that was invented for the javascript language (JSON stands for javascript object notation). it is only able to represents hash tables and array, and variables are not typed.
+
+Hash tables are contained in a pair of curly braces, and key/value pairs are written as \texttt{key: value, key: value}, using columns to separate keys from values and commas to separate pairs.
+
+Arrays are contained in square brackets, and elements are separated by commas: \texttt{[element, element, element]}.
+
+The following example is a JSON representation of a hash table with two keys (aKey and anotherKey). The first one points to an array of strings, while the second points to a number.
+\begin{verbatim}
+    {
+        "aKey": ["elements", "of", "the", "array"],
+        "anotherKey": 34
+    }
+\end{verbatim}
+
+To keep the examples in this document lightweight, a simplified syntax will be used where double quotes are optional (unless the string contains spaces, commas or other special characters). The examples becomes:
+
+\begin{verbatim}
+    {
+        aKey: [elements, of, the, array],
+        anotherKey: 34
+    }
+\end{verbatim}
+
+This is just a syntax to represent data, in each chapter additional information will be provide about how to encode Em elements and Ex, Es properties with JSON.

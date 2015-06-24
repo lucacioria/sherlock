@@ -1,0 +1,126 @@
+\documentclass[letterpaper,11pt,oneside,final]{uicthesis}
+\usepackage{amsfonts, amsmath, amsthm, amssymb, epsfig, graphicx, float}
+\usepackage[longnamesfirst,square,sort&compress, comma]{natbib}
+\usepackage[xindy,style=index]{glossaries}
+\usepackage{bera}
+\usepackage[utf8]{inputenc}
+\usepackage{lipsum}
+\usepackage{xcolor}
+\usepackage[color]{soul}
+
+% Configuration
+	% Thesis title
+	\newcommand{\thesisTitle}{Temporal Analysis of Wire Transfers for Fraud Detection}
+	% Thesis author
+	\newcommand{\thesisAuthor}{Luca Cioria}
+	% Author's previous degrees
+	\newcommand{\authorDegrees}{M.Sc., Politecnico di Milano, Apr 2014}
+	% Current degree (Thesis's degree)
+	\newcommand{\thesisDegree}{Master of Science in Computer Science}
+
+\usepackage[unicode,
+			pdftex,
+			plainpages=false,
+			linktoc=all,
+			hyperindex,
+			breaklinks=true,
+			citecolor=green,
+			urlcolor=blue
+		   ]{hyperref}
+\hypersetup{
+	pdftitle={\thesisTitle},
+	pdfauthor={\thesisAuthor}
+}
+
+% Style
+\input{style/style}
+
+% Acronyms (to appear in the List of Abbreviations)
+\makeglossaries
+\input{acronyms/acronyms}
+
+\begin{document}
+
+	\begin{titlepage}
+	\topskip0pt
+	\vspace*{\fill}
+	\begin{spacing}{1.5}
+	\begin{center}
+
+		{\Large \thesisTitle}
+
+		\vspace{4.2cm}
+    BY\\
+
+    LUCA CIORIA\\
+		\vspace{0.2cm}
+    Laurea Magistrale, Politecnico di Milano, Milan, Italy, 2014
+
+		\vspace{3.2cm}
+    THESIS\\
+		\vspace{0.2cm}
+    Submitted as partial fulfillment of the requirements\\
+    for the degree of Master of Science in Computer Science\\
+    in the Graduate College of the\\
+    University of Illinois at Chicago, 2015
+		\vspace{0.5cm}
+    \begin{flushleft}
+    Chair: Venkat\\
+    Committee:  Lenore Zuck, Stefano Zanero
+    \end{flushleft}
+
+	\end{center}
+
+	\end{spacing}
+	\vspace*{\fill}
+	\end{titlepage}
+
+	\dedication
+		\input{dedication/dedication}
+
+	%\acknowledgements
+		%\input{acknowledgements/acknowledgements}
+
+	\setcounter{tocdepth}{2}
+	\tableofcontents
+	\listoftables
+	\listoffigures
+	% Remember to run makeglossaries thesis
+		% \glsaddall
+		% \printglossary[title=LIST OF ABBREVIATIONS]
+
+   \summary \label{summary}
+   This thesis aims to improve the current systems to identify fraudolent bank tansactions. We start by analyzing the state of the art, in particular the work done in the BankSealer project, focusing on the temporal analysis of user profiles. We then suggest a new approach at identifying anomalous shifts in user spending patters, that should prove more general and effective than the current one.
+
+   After having defined a possible new system, we test its effectiveness and generality with a fully working prototype implementation against a set of over a million real bank transactions, and conclude by explaining the main success areas of the new approach, and the possible areas of improvement for future work.
+
+	\chapter{Introduction} \label{introduction}
+		\input{chapters/intro}
+	\chapter{State of the Art} \label{soa}
+		\input{chapters/soa}
+	\chapter{User Profiles and Distance Measure} \label{profiles}
+		\input{chapters/profiles}
+	\chapter{System Design} \label{design}
+		\input{chapters/design}
+	\chapter{Implementation} \label{implementation}
+		\input{chapters/implementation}
+	\chapter{Test} \label{test}
+		\input{chapters/test}
+	\chapter{Conclusions and Future Work} \label{conclusions}
+		\input{chapters/conclusions}
+
+	\clearpage
+	\phantomsection
+
+	\clearpage
+	\phantomsection
+	\bib
+	\bibliography{thesis}
+	\nocite{*}
+
+	\newpage
+	\phantomsection
+
+	\input{vita/vita}
+
+\end{document}

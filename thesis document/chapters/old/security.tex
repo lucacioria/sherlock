@@ -1,0 +1,40 @@
+% !TEX root =  ../thesis.tex
+
+\section{Introduction} \label{sec:secur1}
+This project is part of the Ethos OS, which is characterized by its focus on security by design. The goal is to minimize security risks by changing the design principles themselves, making various attacks not possible.
+
+The situation can be interpreted as the typical trusted path problem in secure communications, where we include the user interface as the last element in such path. Also, we should not limit our analysis to technical exploits at different levels of this path, but also include social engineering attacks, where both naive and tech savvy users can be, for instance, fooled into clicking on malicious buttons or giving personal information.
+
+In this chapter we will quickly go through a list of possible attacks that are performed against applications with a remotely rendered GUI and see how we invalidate these exploits with our framework. \textbf{However, we should note that the greatest effort in the design of Em, Es and Ex was put on simplicity and minimality of both implementation code and concepts.} This is because we believe that most security risks in modern UIs arise from their excessive complexity, and therefore we tried to minimize such complexity while maintaining most of the features required to develop a functional interactive GUI application.
+
+ This being said, we do not pretend to be exhaustive in the following list, or to analyze these threats in depth, but to provide a general overview and a possible starting point for further analysis, when the implementation will be more solid.
+
+\subsection{Trust and security risks}
+
+Key elements that should be considered as part of the trusted path are the developer, the server, the communication channel, the UI rendering engine and the user machine. In this first list we show two possible attacks that should be prevented, even though they are not directly solved by the Em design, pointing to existing solutions (if present) to the problem.
+\begin{description}
+	\item[false server identity] The situation in which a server pretends to be the legitimate server and provides a similar UI (phishing). Approaches to solve this problem are based on private/public key matching and have either to be managed by an authority (as it is done in  SSL and HTTPS), or be on a case by case acceptance of the server.
+	\item[connection channel is not trusted] Since we receive remote updates to our UI, we should also verify the authenticity of these updates. This problem, being similar to the previous one, can be tackled with the same methodologies.
+\end{description}
+
+In general, these risks are not currently completely solved. This is because there is no way to establish the authenticity of the first connection if we assume the attacker has access to our client machine (or the network) since our first attempt of connection. We will focus more on those aspects of security that are directly correlated with GUIs, or that the Em language can solve thanks to its design. The considered situations are:
+
+\begin{description}
+  \item[malicious intentions of the developer] Even on a trusted server, the application might be malicious. For instance, the application might be intended to do harm to the user machine (DoS or virus injection), or have access to its data. In such a scenario, the security risk is mitigated by a trusted UI rendering engine. Not having client side code, but only a minimal interaction logic provided by the framework, is already a big step towards solving this problem.
+  \item[visual spoofing of the client] This attack is performed drawing components similar to those of the UI renderer (chrome elements such as a status bar, and address bar or menus) and hiding the original ones so that the user is fooled into interacting with these false replacement. A possible solution here is the inability to edit the chrome of the UI renderer, and to standardize its appearance as much as possible.
+  \item[internal visual spoofing] This attack consists in creating confusing interfaces that lead the user into performing unintended actions. Examples of internal visual spoofing are visually similar components or symbols, elements that are superimposed or partially overlapping, colors that are difficult to distinguish or that hide components' borders. Possible solutions revolve around limiting the visual expressiveness of the language, for instance limiting the available fonts (to avoid similar symbols), not allowing overlapping of interactive components and enforcing certain visual clues to clearly delimit functional areas of the GUI.
+\end{description}
+
+\subsection{Em design and security}
+
+We will now briefly see how Em and its environment can help solve these issues:
+\paragraph{Em renderer}
+The renderer is the application that receives the Em, Ex and Es documents and renders the interactive UI. Since Em does not allow for client side code, the renderer is responsible for implementing all the necessary interaction logic. If this code is secure, and no other custom logic can be executed, we minimize the risk of malicious applications. Unless exploitable bugs in the renderer are present, it will be impossible to do harm to the client machine, and for this reason it plays a central role in securing the GUI application.
+Another important security related aspect to consider is the renderer's chrome. The chrome is the set of all UI elements that are not part of the rendered UI. In web browser, for example, the chrome typically includes the address bar, status bar and the browser menus. The Em renderer should have a distinct separation of the chrome from the rendered application area, and give no way for the developer to change the appearance of the chrome itself. In this way, we can avoid visual spoofing attacks such as reproducing a fake address bar, or status bar, with false information.
+
+\paragraph{Em, Ex and Es}
+In addition to what already explain in the previous paragraph, the Em, Ex and Es languages have two other properties that were designed to optimize security, in particular avoid visual spoofing and confusion of the user by complex UI.
+\begin{description}
+  \item[no overlapping containers] no overlapping is allowed by Ex, therefore no click through attacks are possible. Also in this way we avoid confusing UIs that use overlapping and pop-up windows to mask their real functions or spoof other typical OS UI elements, such as a system wide confirmation windows.
+  \item[limited interactions] since interactions are limited to a predefined set, no special behaviors that might be confusing can be implemented. In particular, interactions are only clicks on buttons, dragging to resize frame borders and typing in text input fields or triggering commands through keyboard shortcuts.
+\end{description}

@@ -1,0 +1,249 @@
+% !TEX root =  ../thesis.tex
+
+\section{Introduction}
+
+In the previous chapter we saw how the structure of the UI is written using Em. The nodes of the tree representing the structure, as we already illustrated, are EmFrame elements. These elements are special in the sense that they have a whole set of properties to lay them out.
+
+Layout is therefore a process that takes frames (and \textbf{frame-like} elements, as we will explain later) annotated with layout properties (the focus of this chapter) and outputs, for each frame, its position and size.
+
+Before going any further, we need to introduce an important concept: \textbf{selectors}. Selectors are the connection between the Em document and the Ex (and Es) document. They are a way to select a subset of elements in the structure tree, so that we can apply layout properties to them.
+
+\section{Selectors}
+\label{sec:selectors}
+
+Selectors are a \textbf{query syntax} that lets us select a subset of all the elements in the structure. It is, as everything else, encoded and expressed here in JSON. To be specific, a selector is a \textbf{JSON array}.
+
+Selectors filter the elements based on their id, classes, type and, more in general, any property or child/parent relation.
+
+A selector is an array because it is actually an array of sub selectors, where each sub selector is a hash table:
+
+\begin{verbatim}
+    {selector: [{sub selector 1}{sub selector 2} ... {sub selector N}]}
+\end{verbatim}
+
+To match, the first sub selector must match on an element and every successive sub selector must match on a child of the previously selected one, thus creating a chain. Each sub selector defines a selection (subset of elements in the tree). By default, the final selection will correspond to the selection of the last sub selector.
+
+Each sub selector works in a very simple way: it is a hash table where for each key (property name) we specify a list of allowed values. All properties must match at least one of their allowed values. Here are a few examples of how selectors work, explaining also a few more advanced features.
+
+all elements with class title:
+\begin{verbatim}
+    [{class: title}]
+\end{verbatim}
+
+all elements with class title OR class subtitle:
+\begin{verbatim}
+    [{class: [title, subtitle]}]
+\end{verbatim}
+
+all elements of type EmButton AND class formButton OR submitButton:
+\begin{verbatim}
+    [{type: EmButton, class: [formButton, submitButton]}]
+\end{verbatim}
+
+all elements of type EmButton AND with property checked = true:
+\begin{verbatim}
+    [{type: EmButton, checked: true}]
+\end{verbatim}
+
+all elements:
+\begin{verbatim}
+    [{}]
+\end{verbatim}
+
+As you can see, for every property a list of possible values is specified (OR). If any of the values matches, the selector is satisfied. If we want to match all values (AND) we can define an array instead of a single value. This example matches all elements of class (\textit{EmButton} AND \textit{selected}) OR \textit{link}:
+\begin{verbatim}
+    [{type: EmButton, class: [[button, selected], link]}]
+\end{verbatim}
+
+Up to now we didn't chain any selector, this example matches all buttons inside (direct descendant) an element of class myForm:
+\begin{verbatim}
+    [{class: myForm}{type: button}]
+\end{verbatim}
+
+If we need to match indirect descendants, we can insert an empty selector in between the two elements, and give it the property \verb|_limit: 0|, which means to match as many elements as possible. The default value for this property is 1 (matches exactly one element). We can also specify a range, in the form \verb|[a, b]|, which defines the minimum and maximum number of elements to match. 0 always means infinite.
+
+This example matches all buttons which have a descendant of class myForm. In this case, we search for buttons. Then we match their parents recursively against \verb|{}| (empty selector, matches everything) until we find an element that also matches the next rule, class: myForm.
+\begin{verbatim}
+    [{class: myForm}{_limit: 0}{type: button}]
+\end{verbatim}
+
+Lastly, we can select objects based on their \textbf{\texttt{\_position}} at their level, which is equal to how many left siblings they have. Therefore if we want to select the first child of an element with id="myID" we can do:
+\begin{verbatim}
+    [{id: myID}{_position: 0}]
+\end{verbatim}
+
+Consistently with the \texttt{\_limit} property, we can assign an array to the \texttt{\_position} property in order to select a range of elements.
+
+One last feature of selectors is the ability to include in the final selection the selection defined by any sub selector in the chain, not just the last one. This is done with the property \textbf{\texttt{\_select}}, which is by default true for the last one and false for every other sub selector. If we want to select all frames that directly contain a button as child, we can do:
+
+\begin{verbatim}
+    [{type: EmFrame, _select: true}{type: EmButton, _select: false}]
+\end{verbatim}
+
+First, we selected the first sub selector, then we also remove from the selection the last sub selectors. As many sub selectors as needed can be added to the selection.
+
+\section{Ex document syntax}
+As usual, our syntax is JSON based. The Ex file is a JSON array that contains hash tables. Each hash table is a pair of properties to assign, an a selector to define the subset of Em elements to apply these properties to. This is an example of a complete Ex document:
+
+\begin{verbatim}
+    [{
+        selector: [{id: myButton}],
+        value: {widthPolicy: FILL}
+    },{
+        selector: [{type: EmFrame}],
+        value: {minHeight: 120}
+    }]
+\end{verbatim}
+
+\section{rule precedence and cascading inheritance}
+\label{ex:rule_precedence}
+
+The layout properties are \textbf{not cascading} (they only apply to the elements selected) and therefore if a property value is assigned to a frame, it will not propagate to its children.
+
+To keep the layout files easy to understand and to parse, precedence rules are reduced to the simple order of declaration: declared later, higher precedence (overrides preceding rules). Therefore it is important to write rules from the most generic ones to the most specific ones. This also has the advantage of keeping the layout files clean and organized.
+
+To determine which property value will be associated to an element, the client will, in order:
+
+\begin{enumerate}
+    \item search for matching selectors, respecting precedence as previously defined
+    \item apply the property value if the previous search is successful, otherwise use the default value
+\end{enumerate}
+
+\section{Frames and frame-like components}
+
+Frames (\texttt{EmFrame}) are the main element used for layout. They are rectangular, transparent (by default) containers that can be both laid out and provide layout rules for their children elements. To better explain, a frame can have attributes that specify its size (\texttt{width: 100}) or attributes that specify how elements behave inside it (\texttt{flowDirection: VERTICAL}).
+
+Frame-like components can be laid out just like frames, but they cannot contain any other element (they are leaves in the structure tree). Therefore they are compatible with all those properties that are not related to layout of inner elements. Frame-like components are almost all UI controls: buttons, labels, \ldots . In \ref{ex:layout_properties}, for each property, it will be specified if it applies only to frames or, more in general, to all frame-like components.
+
+\section{Sections}
+
+As explained in \ref{sec:emsection}, EmSection is a subclass of EmFrame that adds semantic values and additional behavior to the EmFrame element. Therefore every time we talk about properties compatible with an EmFrame, we imply (consistently with Object Oriented concepts) that they also apply to EmSection elements.
+
+\section{Units of measurement}
+\label{ex:units}
+
+In the following section, we will list and explain in depth every available layout and style property. However, before proceeding, a short explanation of our units of measurement is necessary.
+
+\subsection{Sizes}
+
+Size (font size, frame heights..) is usually measured in pixels. This however is dependent of the dpi (pixel density) of the device in use. We can use a density independent pixel (by choosing a standard density, say 160 dpi). This is what has been done, for instance, in the Android project, where the \verb|dip| unit is used. However, it is still dependent on the average distance of the user from the screen. On a mobile phone things are supposed to be smaller, because we look at it more closely than a tablet, laptop, desktop monitor, television and so on..
+
+In Es, sizes are measured with a standard pixel, with defined dpi and average distance (160 dpi and 30 inches), so that each device is then able to adapt the interface in a consistent and predictable way.
+
+We can imagine the user adjusting her preferred viewing distance, and having the UI adapt to accommodated for different preferences.
+
+Today this approach has one minor drawback, the loss of pixel perfection in the rendering. This can result in less sharp, blurry interfaces. This problem is however less and less relevant, as average pixel density is increasing rapidly and will not be a problem anymore in the coming years.
+
+\subsection{Coordinates}
+
+Coordinates in Es will always be given as \verb|X, Y|, with X being the horizontal distance from the left, and Y the vertical distance from the top. Therefore the \verb|0, 0| coordinate will indicate the top-left corner.
+
+No absolute coordinates exist, as we always refer to the current layout scope (parent Em element, which is always a frame). This is necessary to have a portable and adaptive interface, independent of the current display, and generates much more reusable code.
+
+\section{Layout properties}
+\label{ex:layout_properties}
+
+Here are listed all the available layout properties. These properties can be applied to every frame or frame-like element. Frame-like elements are those rectangular UI components that behave like frames, with the only major exception that cannot contain children. Examples are buttons, text fields etc\ldots
+
+For each property, the value type is specified (either \textit{double} or a list of CONSTANTS). Next, the compatible elements are specified. If \textit{frame-like}, it means frames and frame-like elements. When only \textit{frames} is written, it means that the property is meant to affect the element children and therefore it is not compatible with frame-like elements.
+
+\begin{description}
+\item[width (double) (frame-like)] [no default] width
+\item[height (double) (frame-like)] [no default] height
+\item[x (double) (frame-like)] [no default] x value of the top-left corner
+\item[y (double) (frame-like)] [no default] y value of the top-left corner
+
+\item[minWidth (double) (frame-like)] [0] the minimum width of the element.
+\item[maxWidth (double) (frame-like)] [MAX\_WIDTH] the maximum width of the element.
+\item[widthPolicy (WRAP, FILL) (frame-like)] [WRAP] WRAP means wide enough con contain everything. FILL means as wide as possible, respecting widthWeight. Min and Max width constraint are always respected, therefore by specifying the same max and min width, we can enforce a fixed width (FILL or WRAP does not matter in this case).
+\item[widthWeight (double) (frame-like)] [1] weight of this element as a filler. If two elements are on the same row and have widthPolicy=FILL, then they will fill proportionally to their weight.
+\item[minHeight (double) (frame-like)] [0] the minimum height of the element.
+\item[maxHeight (double) (frame-like)] [MAX\_HEIGHT] the maximum height of the element.
+\item[heightPolicy (WRAP, FILL) (frame-like)] [WRAP] WRAP means high enough con contain everything. FILL means as high as possible, respecting heightWeight. Min and Max height constraint are always respected, therefore by specifying the same max and min height, we can enforce a fixed height (FILL or WRAP does not matter in this case).
+\item[heightWeight (double) (frame-like)] [1] weight of this element as a filler. If two elements are on the same column and have heightPolicy=FILL, then they will fill proportionally to their weight.
+
+\item[margins] only the left margin is explained. Top, bottom and right have similar properties.
+\begin{description}
+    \item[minMarginLeft (double) (frame-like)] [0] the distance the element keeps to whatever is on its left side. The distance is kept outside the element.
+    \item[marginLeftPolicy (FIXED, EXPAND) (frame-like)] [FIXED] if it is FIXED, then the minMarginLeft value is used. If it is EXPAND then that value is treated as a minimum but will be expanded as far as possible.
+    \item[marginLeftWeight (double) (frame-like)] [1] if marginLeftPolicy is EXPAND, this is the weight of expansion on the expansion line. This is similar to the widthWeight concept.
+\end{description}
+
+\item[flow] This is a complex but powerful and generic concept. It specifies how elements inside a frame are supposed to flow and how many elements should be in each row/column.
+\begin{description}
+    \item[flowLimitVertical (integer) (frames) ] [0] specifies how many elements can be stacked together vertically at most. Use 0 to remove limit.
+    \item[flowLimitHorizontal (integer) (frames)] [0] same for horizontal.
+    \item[verticalFlowWrapping (boolean) (frames)] [true] if true, the flow of elements wraps inside the container, meaning that it goes to a new line if it reaches the side.
+    \item[horizontalFlowWrapping (boolean) (frames)] [true] same for horizontal.
+    \item[flowOrigin (TOP\_LEFT, TOP\_RIGHT, BOTTOM\_LEFT, BOTTOM\_RIGHT) (frames)] [TOP\_LEFT] the corner the flow starts form. As we can see in image \ref{img:flow}, the first one from the left has direction=HORIZONTAL, origin=TOP\_RIGHT, verticalFlow=0, horizontalFlow=3. If we resize the container so that child 3 is out, we obtain the second situation. The figure has horizontalFlowWrapping=false, and child 3 is not displayed. The last figure has horizontalFlowWrapping=true and therefore child 5 is out.
+    \item[flowDirection (VERTICAL, HORIZONTAL)] [HORIZONTAL] the direction of the flow.
+    \begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.4]{images/flow.pdf}
+    \caption{Example of a container with 5 children} \label{img:flow}
+    \end{figure}
+\end{description}
+
+\item[padding] also known as inset or internal margin. Simply a double value for each side. IMPORTANT: if padding is applied on the left or top side, then the origin of the coordinates inside this element are shifted by the padding. This is consistent with the box model definition given previously. Also, the effective internal available height and width of the element are reduced. Only left padding is listed here, similar properties exist for right, top and bottom padding.
+\begin{description}
+    \item[leftPadding (double) (frames)] [0] padding value for the left side.
+\end{description}
+
+\item[overflow] if the content of the frame overflows, this sets the policy to apply.
+\begin{description}
+    \item[verticalOverflowPolicy (SCROLL, HIDDEN)] [SCROLL] Should be self explanatory. It must be noted that this policy is applied after all other layout calculations are performed, the overflow policy does not change the layout in any way.
+    \item[horizontalOverflowPolicy (SCROLL, HIDDEN)] [SCROLL] same for horizontal.
+\end{description}
+
+\item[user resizable] this property makes the border of the container resizable by users. This operation is performed by dragging the border to its new desired position.
+\begin{description}
+    \item[leftResizable (boolean) (frames)] [false] whether the left border can be dragged to resize the frame.
+    \item[rightResizable (boolean) (frames)] [false] whether the right border can be dragged to resize the frame.
+    \item[topResizable (boolean) (frames)] [false] whether the top border can be dragged to resize the frame.
+    \item[bottomResizable (boolean) (frames)] [false] whether the bottom border can be dragged to resize the frame.
+\end{description}
+\end{description}
+
+% subsection non_cascading_styles (end)
+
+\subsection{Constraints on layout attributes}
+Up to now, we only described layout attributes without the possibility of an attribute depending on others. There are times where, for example, the width of a button depends on the width of other buttons (so that they may all be the same), or the height of cells in a table is related to each other (so that cells are all aligned). To achieve this we introduce the concept of constraints and groups.
+
+To work with groups and constraints we use two special attributes
+
+\begin{description}
+    \item[inGroup (string)] [none] a group is a set of attributes that are linked together by a common group name. They must all have the same type (integer, double, rgb color etc..). When an attribute is part of a group, it contributes its value (if specified or computable) to the group itself.
+    \item[aggregationFunction (min(), max(), avg())] [max()] after having populated the group with various attributes, we can use the group to set the value of compatible (same type) attributes. The aggregate function is a function that takes a set of values (all those contained in the group) and outputs only one value.
+\end{description}
+
+\subsubsection{Examples of groups}
+
+The simplest example is the master/follower one. One element sets an attribute value and other elements follow it, using the same value. In this case the label follows the width of the button:
+
+\begin{verbatim}
+Em:
+    [{type: button, id: myButton},
+    {type: label, id: myLabel}]
+Es:
+    [{
+        selector: [{id: myButton}],
+        value: {width: [20, inGroup("my_group")]}
+    },
+    {
+        selector: [{id: myLabel}],
+        value: {width: min("my_group")}
+    }]
+\end{verbatim}
+
+In this other example we use the max function. We have 3 buttons on a row and we want them to be the same width, therefore we have to chose the max width. We do not set the width explicitly, it'll be set when the contentWidth is computed. We can omit the aggregation function because \verb|max()| is the default function. We have to both set the inGroup attribute and use the group, because in this case the elements both take part in the group and get their values from it.
+\begin{verbatim}
+Em:
+    [{type: EmButton, id: myButton1, class: buttons},
+    {type: EmButton, id: myButton2, class: buttons},
+    {type: EmButton, id: myButton3, class: buttons}]
+Es:
+    [{
+        selector: [{class: buttons}],
+        value: {width: ["my_group", inGroup("my_group")]}
+    }]
+\end{verbatim}

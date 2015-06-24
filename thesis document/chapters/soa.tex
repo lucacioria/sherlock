@@ -1,0 +1,15 @@
+% !TEX root =  ../thesis.tex
+
+\section{Related work}
+
+This thesis is born to address limitations in the BankSealer fraud detection framework, and therefore the majority of the citations and reference to related work will be for BankSealer~\cite{banksealer}.
+
+More in general, various works have addressed similar issues in the past but the focus has mostly been towards Credit Card frauds instead of bank transfers. Also, the limited availability of real data from banks, mainly due to privacy concerns, has slowed research in the field.
+
+\section{BankSealer}
+
+BankSealer is a semi-supervised analysis tool for bank frauds. It is developed to work as a support for decisions made by analysts, and therefore it works with a ranking based system, computing an anomaly score for each transactions. Also, the anomaly score is transparent, in the sense that its value can be decomposed and understood by a human.
+
+It works by creating profiles that represent the spending habits of clients, and then comparing new transactions to these profile in order to assess how much they deviate from such profiles. In particular, it uses three types of profiles for each user: local, temporal and global profiles. The local profile is the most important one as it is used to compute an anomaly level for each transaction. The temporal profile tries to find anomalies at a higher level (e.g.: total number of transactions in a month) and the global profile computes the anomaly of the user as a whole with respect to all the other users.
+
+The system proved to be effective in ranking fraudolent transactions as top priority, in particular thanks to the local profile analysis. Further improvements are necessary on the temporal profile analysis (the objective of this work) and the global profile analysis, which had positive effects on undertrained users but did not result very effective in raising the performance of the analysis on trained users.

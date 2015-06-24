@@ -1,0 +1,73 @@
+% !TEX root =  ../thesis.tex
+
+\section{Introduction}
+
+The style file (Es) is the last component we need to specify a complete interface. It is not mandatory (just like the layout file) and, when not provided, each element will simply have all its properties initialized to their default values. The complete list of properties and their defaults will be provided later in the chapter.
+
+We will not go over the syntax and rules precedence of the style file because the same rules that were illustrated for the layout file still apply here, with one major difference: style properties are \textbf{cascading}.
+
+As mentioned before, a property is cascading if, by default, it inherits its value from its ancestors. With cascading properties we can rewrite the procedure (see \ref{ex:rule_precedence}) the client will follow to determine the final value of a property at runtime:
+
+\begin{enumerate}
+    \item search for matching selectors, respecting precedence as previously defined
+    \item apply the property value if the previous search is successful, otherwise use the value provided by the parent element
+    \item if no parent element is defined, use the default value for that property
+\end{enumerate}
+
+\section{Units of measurement}
+
+We will now introduce the units we need to specify style properties. We already defined sizes and coordinates in the layout chapter, and they are still valid for compatible properties in the style file.
+
+\subsection{Colors}
+
+Colors are specified as \verb|RGB| (red, green and blue) hexadecimal values, just like in CSS and many other visual environments. For example, the red color is written as \verb|#ff0000|. Semitransparent colors are not allowed, in the philosophy of keeping the interface clean and understandable, avoiding complex visual effects.
+
+\subsection{Style properties}
+
+Here are listed all the available style properties. These properties can be applied to all elements, and it will be the the element responsibility to use or ignore the property value appropriately. For example, a text label will probably care about text related style properties, while an image container would ignore those property (since it does not have any text). However it will still propagate them to its children, therefore a label that is child of the image container would use them to style its text rendering.
+
+\begin{description}
+    \item[text and font related styles] :
+    \begin{description}
+        \item[color (rgb color)] [\#000000] text color
+        \item[font (font name)] [opensans] text font, to be chosen from a fixed list of compatible fonts
+        \item[fontSize (double)] [12] font size
+        \item[fontWeight (LIGHTER, LIGHT, NORMAL, BOLD, BOLDER)] [NORMAL] font weight
+        \item[fontStyle (NORMAL, ITALIC)] [NORMAL] self explanatory
+        \item[fontDecoration (NONE, UNDERLINED)] [NONE] self explanatory
+        \item[wordSpacing (double)] [1] space between words. 1 is normal spacing, 2 is double that, 0.5 half that..
+        \item[letterSpacing (double)] [1] space between letters
+    \end{description}
+    \item[frame-like elements related style] :
+    \begin{description}
+        \item[backgroundColor (rgb color)] [\#000000] background color
+        \item[borderWidthLeft (double)] [0] width of the border stroke. The border is not part of the box model, and will be rendered centered between margin and padding.
+        \item[borderColorLeft (rgb color)] [\#000000] border color
+        \item[borderStyleLeft (SOLID, DASHED)] [SOLID] border style
+        \item similar border properties exist for right, top and bottom borders.
+    \end{description}
+    \item [section related styles (sections are explained later)] :
+    \begin{description}
+        \item[userCollapsible (Boolean)] [true] whether a section can be collapsed by the user or not
+        \item[oneChildExpanded (Boolean)] [false] whether a section must have one and only one subsection expanded at all times
+        \item[collapsed (Boolean)] [false] whether a section is collapsed or not. When collapsed, all children except the first one are hidden.
+    \end{description}
+
+\end{description}
+
+\section{Styling sections}
+\label{sec:styling_sections}
+
+As explained in \ref{sec:emsection}, sections are transparent containers that behave like frames. They can be used for layout and can be styled (with borders, backgrounds\ldots). However, there is one particular situation for which additional considerations are in order: section headers. As explained before, sections to not display a header (title) anywhere in the UI (the \texttt{title} property is used only to generate the table of contents). The first child of an EmSection element can be used as header (meaning it will not become invisible when collapsing the section). Therefore, if we want to style section headers, we will then need to define an appropriate selector to style the first child of every matching section.
+
+Section styling is based on the nesting level, relative to the current scope. To style a section we need to select it based on its nesting level and specific scope, and then select its first child. Here is an example:
+
+\begin{verbatim}
+    [{
+        selector: [{id: sectionHead}{_limit: 0}
+                   {type: EmSection, nestingLevel: 1}{_position: 0}],
+        value: {color: #ef41b7}
+    }]
+\end{verbatim}
+
+In this example, we first define the selection scope (by limiting the selector to all children of the \texttt{sectionHead} element). Then we match all elements of type \texttt{EmSection} with \texttt{nestingLevel = 1} (which are the top level sections) and restrict the selection to their respective first children using the \texttt{\_position} attribute. Finally, a style property (\texttt{color} in this case) is specified and applied to all matching section headers.

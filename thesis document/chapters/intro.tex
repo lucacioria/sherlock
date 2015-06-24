@@ -1,0 +1,24 @@
+% !TEX root =  ../thesis.tex
+
+\section{Motivations}
+
+This work is born from the need to improve some specific areas of anomaly detection in bank transfers, in particular what we will call here `temporal profile analysis', as it was already called in the BankSealer framework. As we will see in later chapter, our model of a temporal profile is very different from what was done in BankSealer, but is intended to provide a superset of functionalities, being more general, and therefore we kept the name.
+
+In particular, in BankSealer the temporal profile is able to analyze a very limited set of features, built ad hoc for it. These features are:
+\begin{description}
+  \item[total amount] total amount spent in a month
+  \item[number of transactions] total number of transactions performed in a month
+  \item[maximum daily number of transactions] maximum number of transactions performed in a single day in the last month
+\end{description}
+
+These three features are not defined in a generic way, but rather concieved to fit well in a temporal analysis of the user. They have two main issues: first, they're not comprehensive with respect to all the possible features to analize. Second, they only consider grand totals, and not how these totals split up in categories. We will delve further in these issues and our approach to solve them in the next section.
+
+\section{Towards a solution}
+
+To better understand the issue of grand totals, consider this example.
+
+A user averages at 100 transactions per month, mostly around a few hundreds euros each. In the current month, we see 120 transactions, which is not a big enough increase to go over our threshold. However, if we analyzed how these transactions distributed over their amount, we'd see that we have 30 transactions of just 10 euros each. Considering not only the grand total, but how transactions distribute within a profile, we can notice a shift and alert that the current month has a high anomaly level regarding the amount.
+
+This approach may seem very similar to what is done in BankSealer's local profile, but it differs in a few crucial ways and can therefore complement the local profile. In the local profile a transaction was tested against a user local profile for a specific feature to derive a level of anomaly. In our temporal profile, a whole profile is tested with an average of recent profiles, to detect a shift in the overall behavior of the user. Following the previous example, the local profile would probably have raised suspicion over some (possibly all) the 10 euros transactions in questions if the anomaly derived from the amount had been sufficient. However, the fact that they were 30 transactions wouldn't in any way have been taken into account for the current month, while this information is a signal that those transactions could be frauds. Also, if the transactions varied for other features, such as time of the day, it's very possible that only some of them would show up in the local profile as anomalous, and the analyst wouldn't realize that there were actually 30 transaction around 10 euros.
+
+With our approach, we identify the problem at a higher level: the whole profile, not the single transaction. Then, we try to bring it back to transactions by selecting those transactions that were mostly responsible for the shift in behavior. This can be used as a complement to the local profile in various ways: either integrating its signal in an overall anomaly value, or showing anomalous proiles separately and letting the analyst drill down in the details for each transaction thanks to the local profile anomaly value.

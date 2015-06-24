@@ -1,0 +1,39 @@
+% !TEX root =  ../thesis.tex
+
+A fully working prototype has been implemented to test the system design. The prototype has been run against real transactions provided by a bank institution, as will be explained in more details in the Test chapter. The prototype is written in ruby, an object oriented programming language that is well suited for fast prototyping and data manipulation. It is intended to run against a static dataset and not suited for online production data analysis, even though the main components are fully general and could be reused in an online implementation.
+
+\section{Components of the prototype}
+
+The prototype at a high level is a ruby program that runs against a MySQL database. The database is used both as data input, containing the raw transactions that were given by the bank institution, and as data output with profiles and analysis results.
+
+In the next paragraphs we will provide a detailed description of the components of the prototype, following the processing order from the raw transactions to the final analysis.
+
+\subsection{preprocessing}
+Raw transactions from the bank are preprocessed to a normal form, where each record is composed by a set of defined features. The preprocessing step includes the removal of data not necessary for the analysis (e.g.: error messages on transactions), the definition of derived features (e.g.: the feature `hour of the day' is derived from the transaction's timestamp) and the simplification of features (e.g.: the `transaction type' is simplified from a complex set of domain specific types to a simpler distinction between `same bank transfers' and `SEPA transfers').
+
+\subsection{Profile creation}
+Transactions in normal form are grouped by user id. For each user, transactions are divided in groups based on the time window definition, in this prototype set to one month. Then, for each feature, a profile is created based on the feature configuration. The profile is then saved as a record in the database, identified by user, month and feature and containing its histogram representation.
+
+\subsection{Average profile computation}
+For each profile in the database, an average profile of the previous months (for the same user and feature) is computed. The average includes previous profiles with an exponential discount applied, based on profile configuration.
+
+\subsection{Distance computation}
+For each profile, the distance between the profile and the average profile associated with it is computed and stored. The distance is calculated based on the configuration of the distance function for that specific profile.
+
+\subsection{Distance variance computation}
+The standard deviation and mean of the previous distances is computed for each profile. A configurable amount of time windows is considered, and only if enough windows are available the result is saved, in order to avoid unreliable results.
+
+\subsection{Anomaly computation}
+An anomaly value is computed for each profile. The anomaly is defined as:
+\begin{displaymath}
+  \text{anomaly} = \frac{\max(0, d - \overline{d})}{\sigma}
+\end{displaymath}
+where $d = \text{distance}$, $\overline{d} = \text{average distance}$, $\sigma = \text{std dev of distances}$.
+
+\subsection{Threshold}
+The profiles with an anomaly value greater than the value of the threshold parameter for that feature are selected as anomalous. The threshold value is to be tuned experimentally for each feature, and in the prototype we have tested many different threshold values as explained in chapter \ref{test}.
+While being important to select a good threshold value, this processing step is mainly intended to minimize false negative. In fact, one of the basic principles on which also banksealer operates is that we need to order transactions based on their probability of being frauds, being transparent on why they were selected, rather than just labeling them as frauds or not. In this scenario, the threshold parameter is useful in removing the majority of profiles for which we cannot reliably give an anomaly value, but then the selected profiles will be presented alongside their anomaly value, and ordered accordingly for the human analyst to process and evaluate.
+
+\subsection{Transaction extraction}
+As last step, from each selected profile a set of transactions is extracted following the rules outlined in \ref{sec:transactions_analysis}. Selected transactions are then saved to the database and form the starting point for the analyst operations. In a production environment, this information would be intergrated with the local profile analysis performed by banksealer, in which case the selected transactions could have their overall anomaly value raised in addition to being marked as anomalous by the temporal analysis.
+We want to stress that our work is not a binary classifier, dividing transactions in fraudolent or not, and it is therefore important to associated the anomaly value of the profile with each selected transaction, so that it will be rendered in the correct order in the analyst interface.

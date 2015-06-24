@@ -1,0 +1,34 @@
+% !TEX root =  ../thesis.tex
+
+
+\section{Hello World: a comprehensive example -- NOT FINISHED --}
+
+To better explain the notation, let's write a simple Hello World program. The GUI will have only one button that, if pressed, will trigger a remote event. The server will then reply with an edit command that will show the ``Hello World'' string on the display. No layout or style is present for now. Here is the Em document:
+
+\begin{verbatim}
+    {type: frame, id: container, children: [
+        {type: button, id: myButton, text: "push me", onClick: true},
+        {type: label, id: myLabel, text: "old text"}
+    ]}
+\end{verbatim}
+
+We create a frame to contain all our elements. Inside the frame we create a button and a label. The button has a few events associated with it (onClick, onMouseDown, onHover etc..). They are disabled by default. Setting \textit{onClick: true} means that the onClick event is enabled and will be notified to the remote server. The Em document containing the event message (sent to the server when the user clicks on the button) is this one:
+
+\begin{verbatim}
+    {type: event, element: button, event: onClick, id: myButton}
+\end{verbatim}
+
+The server receives this message, and responds with this edit command that inserts text in the label:
+
+\begin{verbatim}
+    {type: command, commandType: edit, id: myLabel, field: text, value: "Hello World"}
+\end{verbatim}
+
+The client applies the command, and this is the resulting Em (the only difference is in label text) that is going to be rendered:
+
+\begin{verbatim}
+    {type: frame, id: container, children: [
+        {type: button, id: myButton, text: "push me", onClick: true},
+        {type: label, id: myLabel, text: "Hello World"}
+    ]}
+\end{verbatim}

@@ -1,0 +1,74 @@
+% !TEX root =  ../thesis.tex
+
+\section{Introduction}
+
+As mentioned in chapter \ref{design}, the user can interact with the GUI (using mouse clicks, touches and keyboards) and each of these interactions results in an event being raised and sent to the server, which in return replies with an edit command to update the GUI.
+
+Events are predefined, each component has a set of available events that are always off by default. For a complete list of available events for each Em element, refer to chapter \ref{em}. The programmer can selectively enable relevant events. If an element has at least one enabled event, it is required to have an id so that, when the event is raised, the client can communicate to the server which element raised it.
+
+\section{User interaction: EmEvent and EmCommand}
+
+We will now explain in more details events and edit commands, using a simple \textit{hello world} example to illustrate the concept.
+In the example we have two buttons, one saying \"write\" and the other \"destroy\". Pressing the first one will write \"hello world\" in a label, while the second one will eliminate the label all together.
+
+First, we define the button and label elements, enabling the onClick events:
+
+\begin{verbatim}
+    {type: EmFrame, children: [
+        {type: EmButton, id: writeButton,   text: "write",   onClick: true},
+        {type: EmButton, id: destroyButton, text: "destroy", onClick: true},
+        {type: EmLabel,  id: label1,        text: "initial text"}
+    ]}
+\end{verbatim}
+
+When the user clicks the write button, a message is sent to the server containing the event name (and optionally additional informations regarding how the event was performed), the time of execution (as milliseconds since epoch) and the id of the element that raised it. This information constitutes the \textit{EmEvent} object:
+
+\begin{verbatim}
+    {type: EmEvent, elementId: writeButton,
+     eventName: onClick, time: 1366934712412}
+\end{verbatim}
+
+When the server receives this message containing an EmEvent, it can decide to do one of two things: ignore the event or reply with an \textit{EmCommand} to modify the rendered interface. The following EmCommand updates the interface by replacing the value of a property on a selected element. In this case, we change the text property of the EmLabel element with id label1:
+
+\begin{verbatim}
+    {type: EmCommand, commandType: update, selector:[{id: label1}],
+     data: {text: "hello world"}}
+\end{verbatim}
+
+When the client renderer receives this EmCommand, it parses it and recognize it to be an \textbf{update command} based on the commandType field. It then and applies the edit contained in data to all elements matching the provided selector. The data field is a simple object that specifies, for each property names, its new value.
+
+The destroy button will behave in a similar way, sending the following EmEvent when clicked:
+
+\begin{verbatim}
+    {type: EmEvent, elementId: destroyButton,
+     eventName: onClick, time: 1366915243434}
+\end{verbatim}
+
+The server will respond with a \textbf{delete command}, which is similar to the update command but without the data field:
+
+\begin{verbatim}
+    {type: EmCommand, commandType: delete, selector:[{id: label1}]}
+\end{verbatim}
+
+As it did for the update command, the client receives this EmCommand and applies it, deleting all elements matching the selector and all their children.
+
+There is one last type of command, the \textbf{create command}, which is used to insert new elements in the structure tree. This command is specified as follows:
+
+\begin{verbatim}
+    {type: EmCommand, commandType: create, selector:[{id: label1}],
+     position: before,
+     data: {...the element to insert...}
+    }
+\end{verbatim}
+
+The already specified syntax is used, with a commandType of create. A combination of selector and position field is used to specify where to insert the element contained in the data field. First, the selector identifies a set of elements. Then the position property is used to specify the insertion point relative to these elements. It can be one of the following:
+\begin{description}
+     \item[before] inserts as left sibling
+     \item[after] inserts as right sibling
+     \item[firstChild] inserts as first child
+     \item[lastChild] inserts as last child
+ \end{description}
+
+When the selector matches more than one element, the new element is duplicated and inserted at every location, unless it contains a unique id, in which case an error is raised.
+
+Based on these three simple types of EmCommand, all edits to the interface can be performed.
