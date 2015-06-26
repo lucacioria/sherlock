@@ -44,19 +44,34 @@ We follow the classification of histograms as proposed in \cite{histogram}, whic
 
 In order to compute how profiles change over time, we need to introduce the concept of a distance between histograms. This topic is central to this thesis, and will be explored in depth, as it provides the basis for the whole temporal profile analysis system.
 
-We refer to the distance between histgrams $H(A)$ and $H(B)$ as $d(H(A), H(B))$
-The distance function will need to be specified over histograms of the same family, and possibly be specialized for each one. It will need to satisfy the following properties:
+We refer to the distance between histgrams $H(A)$ and $H(B)$ as $d(H(A), H(B))$.
+The distance function will need to be specified over histograms of the same family, and possibly be specialized for each one.
+
+To fullfill the requirements of the temporal analysis, the distance function will have to satisfy a few properties. To better understand why these properties are necessary, an understanding of the system design is useful and can be found in chapter~\ref{design}.
+
+In the following list we will explain which properties it will have to satisfy and why such properties are necessary.
 \begin{description}
-  \item[symmetric] $d(H(A), H(B)) = d(H(B), H(A))$
-  \item[positional] for ordinal and modulo histograms, the distance between bins should be taken into account
+  \item[reflexive] $d(H(A), H(A)) = 0$. Since with our distance function we will be measuring the variations in spending profiles over time, we have to assign a null variation to a profile that does not change at all.
+  \item[commutative] $d(H(A), H(B)) = d(H(B), H(A))$. The necessity for this property is less obvious, because we might want to consider shifts in certain directions as more relevant than in others. However, our design treats all variations in the same way, without giving a meaning to the direction of such variations. For instance, if a user changes her spending profile from mostly low amount transactions to mostly high amount transactions, we want to produce the same distance value as if the shift was reversed. This ensures that our approach remains generic.
+  \item[non negative] $d(H(A), H(B)) \geq 0$. Considering that we require our function to be reflexive, and therefore have a $0$ point, having a negative function would mean differentiating distances in 2 directions, such as increase and decrease. As explained in the previous paragraph, we do not want to assign a meaning to the direction of the shift, but only to its magnitude, therefore the function should be non negative.
+  \item[positional] for ordinal and modulo histograms, the distance between bins should be taken into account. In other words, the distance function should be a function of the order of the bins, in additions to being a function of their values. Of course, not any relation between the order of the bins and the final distance value is acceptable. Our goal is to reduce the distance when bins with a value $\geq 0$ are close together, since small variations in positions should be considered noise. This property will be discussed in greater details in the following paragraphs.
 \end{description}
 
-While the first property is self explanatory, the second one requires further explanation. Take as an example the following three histograms:\\
+Before continuing to an analysis of possible distance functions, a quick note on a property that we did not require: \textbf{triangle inequality}. This property says that, for any three histograms $A$, $B$ and $C$, $d(H(A), H(B)) \geq d(H(A), H(C)) + d(H(C), H(B))$.
+
+An example of distance function that does not satisfy this property is the euclidean distance to the power of 2, defined as the sum over each dimension $i$ of $(H(A,i) - H(B,i))^2$. In this case, longer distances will be accounted for in a more than linear fashion. This is not in contrast with our design, as hypothetically it might be possible that such a function resulted in higher performance, accounting more for greater shifts than smaller ones.
+
+Based on a few tests using the euclidean function to the power of $x$, with $x > 1$, we did not find any big difference (positive or negative). In conclusion, we do not require this property and leave experimenting with distance functions that violate it as a possible future work.
+
+\subsection{Positionality: noise and information}
+
+In this section we will delve further in what we mean by positionality and why we think this is essential for our work.
+First, let us make an example to better understand:\\
 $H(A) = [1, 0, 0, 0, 0]$\\
 $H(B) = [0, 1, 0, 0, 0]$\\
 $H(C) = [0, 0, 0, 0, 1]$
 
-The desired behavior will depend on the type of these histograms:
+The desired behavior of our distance function will depend on the type of these histograms:
 \begin{description}
   \item[nominal] all distances should be equal
   \item[ordinal] $d(H(A), H(B)) < d(H(A), H(C))$ since the bins containing a 1 are further apart in the second case
@@ -65,49 +80,54 @@ The desired behavior will depend on the type of these histograms:
 
 We say that the distance is \textit{shuffling invariant} for nominal histograms and \textit{shuffling dependent} for ordinal and modulo histograms.
 
-This property is clearly desirable for our scenario, where a shift in spending habits from transactions around 500 euros to transactions around 800 euros is less relevant than a shift to transactions around 5000 euros. Also, we want to be able to tune this dependence to shuffling so that histograms built on different features can consider the distance between bins independently.
+We think this property is desirable in our scenario, where a shift in spending habits from transactions around 500 euros to transactions around 800 euros is less relevant than a shift to transactions around 5000 euros.
 
-Unfortunately, the typical ways used to measure histogram distance do not satisfy our required properties. In the following sections we will analyze a few possible distances and finally define a new distance function that suits our purposes.
+The issue of positionality can be interpreted in terms of information and noise. Continuing with the amount example, a shift in the order of 100 euros can be interpreted as noise, while a greater shift in the order of thousands of euros conveys real information. We can then formulate our goal in a more high level version: we want our distance function to \underline{consider relevant information and be resiliant to noise in the histogram variations}.
+
+We will now review a few distance functions that can be applied to histograms and finally select the one that better satisfies all the properties we need.
 
 \subsection{Vector representation based distances}
 
-A typical way to define distances is to see histograms as vectors and apply typical vector distances. A few common distances are:
+Histograms can be seen as vectors and any distance function that work with vectors can therefore be used. The two easiest distances are:
 \begin{description}
   \item[city block] sum over each dimension $i$ of $|H(A,i) - H(B,i)|$
   \item[euclidean] squared sum over each dimension $i$ of $(H(A,i) - H(B,i))^2$
 \end{description}
 
-As with all vector based distances, these distances are shuffling invariant ad not enough for what we need.
-
-%\subsection{DPDF representation based distances}
-
-%If se see each histogram as a DPDF (discrete probability density function) we can use probabilistic measures of distances. Good measures would be:
-%\begin{description}
-  %\item[Bhattacharyya distance] TODO
-  %\item[Matusita distance] TODO
-  %\item[K–L distance] TODO
-%\end{description}
+As with all vector based distances, these distances are shuffling invariant and therefore do not satisfy positionality at all. We still included them here because, when complemented with appopriate filtering, they can serve our purpose, as explained in the following paragraphs.
 
 \subsection{Miminum distance of pair assignments}
 
-The MDPA (minimum distance of pair assignments) is a distance function defined in \cite{histogram} that almost satisfies our requirements. To define the MDPA consider two sets of n elements, A and B, which define histograms $H(A)$ and $H(B)$. The MDPA is intuitively equal to the minimum total cost of the `moves' that we need to make in order to transform the first histograms in the second one. A move is defined as subtracting $x$ from bin $i$ and adding it to bin $j$. The cost of a move is $x * d(i, j)$ where $d(i, j)$ is the linear distance between the two bins.
+The MDPA (minimum distance of pair assignments) is a distance function that, at a basic level, satisfies all the properties we require, as shown in \cite{histogram}. To define the MDPA consider two sets of n elements, A and B, which define histograms $H(A)$ and $H(B)$. The MDPA is intuitively equal to the minimum total cost of the `moves' that we need to make in order to transform the first histogram in the second one. A move is defined as subtracting $x$ from bin $i$ and adding it to bin $j$. The cost of a move is $x * d(i, j)$ where $d(i, j)$ is the linear distance between the two bins.
 
-This distance can be used for ordinal and modulo histograms as it takes into account the position of bins. Moreover, efficient algorithms exist for computing the MDPA distance. However, the problem is that in these algoritms the distance $d(i, j)$ between bins is considered to be a linear distance. We think that this is not acceptable in our scenario, since the meaning of such distance depends on the feature measured by the profile associated with the histogram and other distances could be necessary. In particular, exponentially decreasing distances could make more sense in real world situations, where for instance $d(i, j), i=0, j=4$ should be more than double than $d(i, j), i=0, j=2$.
+This distance can be used for ordinal and modulo histograms as it takes into account the position of bins. Moreover, efficient algorithms exist for computing the MDPA distance. We have implemented the algorithm for the ordinal type and tested it, as documented in section \ref{sec:mdpa_test}.
 
-Defining a custom distance $d(i, j)$ that is non linear is possible in MDPA, but leads to a generic linear optimization problem with exponential complexity. Because of this, we decided to discard the MDPA distance and opt for a completely different approach, as explained in the following section.
+However, the problem is that in these algoritms the distance $d(i, j)$ between bins is considered to be a linear distance. We think that this is not optimal in our scenario, since the meaning of such distance depends on the feature measured by the profile associated with the histogram and other distances could be necessary. In particular super-linear distance functions could make more sense in real world situations, where for instance $d(i, j), i=0, j=4$ should be more than double than $d(i, j), i=0, j=2$.
 
-\section{Filter \& measure approach}
+To verify this assumption, we tested the MDPA function and compared it to our approach (as explained in the next section) and found a substantial improvement. Of course, defining a custom distance $d(i, j)$ that is non linear is possible in MDPA, but leads to a generic optimization problem with exponential complexity. Efficiency being a key component of our design, we discarded this direction of research.
 
-Our approach is based on a completely different technique: instead of finding a distance algorithm that takes bin position into account, we apply a `blurring' filter to the histograms and then apply a standard vector distance, such as the euclidean distance.
+\section{Low-pass filtered euclidean distance}
 
-The blurring filter we decided to use is the gaussian smoothing filter, where each bin in the smoothed histogram is the weighed average of its surrounding bins, using the gaussian function to compute the weights.
+Our approach is based on a completely different technique: instead of finding another distance algorithm that takes bin position into account, we apply a low-pass filter to the histograms and then apply a normal euclidean distance.
+
+In this way we can achieve our goal of reducing noise and taking into account the overall shape of the histogram, which represents the spending pattern of the user, rather than the small variations in each bin. 
+
+The low-pass filter we decided to use is the gaussian filter, which is a very well known filter used to remove high frequency noise, reducing the variance in the values of the histogram.
+
+The two dimensional gaussian smoothing filter, also known as gaussian blur, is often used in computer vision to perform contour and shape detection. In our situation, it solves a similar problem in revealing the shape of the histogram.
+
+\subsection{Gaussian function and Weierstrass transform}
 
 The gaussian function with mean $\mu = 0$ is defined as:
 \begin{displaymath}
   \frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{x^2}{2\sigma^2}}
 \end{displaymath}
 
-For instance, the weight assigned in the weighed average to a bin next to the one being computed is given by the gaussian function where $x = 1$, being $x$ the distance between the bins. Usually we consider as insignificant bins with distance $x > 3\sigma$.
+The smoothing filter that results from the convolution of the input histogram with the Gaussian function is the Weierstrass transform.
+
+Using the weierstrass transform, each bin in the smoothed histogram is the weighted average of its surrounding bins, using the gaussian function to compute the weights.
+
+For instance, the weight assigned in the weighted average to a bin next to the one being computed is given by the gaussian function where $x = 1$, being $x$ the distance between the bins. We can consider as insignificant bins with distance $x > 3\sigma$.
 
 This method can account for different types of histograms and can be tuned by adjusting the parameter $\sigma$ of the gaussian function in order to specify how much the histograms should be smoothed before computing their euclidean distance.
 
@@ -119,7 +139,22 @@ In particular, we have as always three types of histograms to account for:
   \item[modulo] smoothing should be applied, but in this case when bins are outside of the histogram range they will be taken from the other end of the histogram, following the rules of the arithmentic modulo operator.
 \end{description}
 
-\subsection{Example of the filter \& measure approach}
+\subsection{Preservation of properties}
+
+The euclidean function is reflexive, non-negative and commutative but not positional. We need to prove that, applying the gaussian filter to both input histograms before applying the euclidean distance, we are preserving those properties and in addition satisfying positionality.
+
+\begin{description}
+  \item[reflexive] Since the gaussian blur is a deterministic mathematical transform that will always give the same result given the same input, we can state that \\
+    $d(F(H(A)), F(H(A))) = 0$.
+  \item[commutative] Following the same logic, the transform does not affect commutativity of the euclidean distance.
+  \item[non-negative]
+    However transformed, the input of the euclidean distance does not affect its non negativity (the difference over each dimension is squared).
+  \item[positional] general idea, to be explained in a more formal way:
+    1. if we apply the filter, the distance is <= than without the filter
+    2. the distance is reduce more if the bins are closer together (show this somehow)
+\end{description}
+
+\subsection{Example of the low-pass filter euclidean distance}
 
 Let us take two histograms, $H(A)$ and $H(B)$ defined as:
 \begin{align}
@@ -127,7 +162,7 @@ Let us take two histograms, $H(A)$ and $H(B)$ defined as:
   H(B) = [0,3,6,2,1,2,1]
 \end{align}
 
-The first step to compute the distance is to process these histograms with a smoothing filter, as previously explained. To understand the effects of such filtering, look at figure \ref{fig:sigma_difference}. The original histogram, printed in black, is $H(A)$. In green we can see the smoothed version of the histogram, on the left with $\sigma = 0.5$ and on the right with $\sigma = 1$. As you can see, raising the value of the $\sigma$ parameter increases the smoothing effect.
+The first step to compute the distance is to process these histograms with a gaussian smoothing filter, as previously explained. To understand the effects of such filtering, look at figure \ref{fig:sigma_difference}. The original histogram, printed in black, is $H(A)$. In green we can see the smoothed version of the histogram, on the left with $\sigma = 0.5$ and on the right with $\sigma = 1$. As you can see, raising the value of the $\sigma$ parameter increases the smoothing effect.
 
 \begin{figure}[h]
 \centering

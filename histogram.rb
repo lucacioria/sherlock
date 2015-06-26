@@ -149,6 +149,34 @@ class Histogram
     a.data.zip(b.data).map{|x| x[0] - x[1]}.map(&:abs).inject(:+)
   end
 
+  #
+  def distance_paper_ordinal(b)
+    a = self
+    raise 'distance_paper_ordinal requires histograms with equal number of buckets' if a.data.length != b.data.length
+    sum_diff = (a.data.reduce(:+) - b.data.reduce(:+)).abs
+    if sum_diff > 0.01
+      pp a.data
+      pp b.data
+      raise "distance_paper_ordinal requires normalized histograms (diff = #{sum_diff})"
+    end
+    prefix_sum = 0
+    h_dist = 0
+    a.data.zip(b.data).map {|v|
+      #puts "a=#{v[0]},\tb=#{v[1]},\t\tprefix_sum=#{prefix_sum},\th_dist=#{h_dist}"
+      prefix_sum += v[0] - v[1]
+      h_dist += prefix_sum.abs
+      #puts "\t\t\tprefix_sum=#{prefix_sum},\th_dist=#{h_dist}"
+    }
+    h_dist
+  end
+
+  # see self.distance_supereuclidean
+  def distance_supereuclidean(b, e)
+    a = self
+    raise 'distance_euclidean requires histograms with equal number of buckets' if a.data.length != b.data.length
+    sqrt(a.data.zip(b.data).map {|x| (x[1] - x[0])**2 }.reduce(:+)) ** e
+  end
+
   # see self.distance_euclidean
   def distance_euclidean(b)
     a = self

@@ -1026,7 +1026,7 @@ module SherlockInject
 
   def self.inject_amount_1(user_id)
     min = 0
-    max = 500
+    max = 5000 # watch out the test in the thesis has been done with this set to 500
     per_month = 12
     per_month_deviation = 10
     injection_amount = 30

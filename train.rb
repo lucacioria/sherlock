@@ -3,6 +3,7 @@ module Train
   DISCOUNT_FACTOR = 0.5
   WINDOW_SIZE = 3
   SIGMA = 1
+  DISTANCE_FUNCTION = 'smoothed' # 'paper', 'smoothed'
 
   # (float, float, float, float) => int
   def self.log_binning(min, max, steps, value)
@@ -65,12 +66,18 @@ module Train
   # (Histogram, Histogram, ProfileKind, boolean) => float
   # compute distance between two histograms
   def self.compute_distance(h1, h2, profile_kind, normalized = false)
-    h1_smoothed = smooth(h1, profile_kind)
-    h2_smoothed = smooth(h2, profile_kind)
-    if normalized
-      h1_smoothed.normalize.distance_euclidean(h2_smoothed.normalize)
-    else
-      h1_smoothed.distance_euclidean(h2_smoothed)
+    case DISTANCE_FUNCTION
+    when 'smoothed'
+      h1_smoothed = smooth(h1, profile_kind)
+      h2_smoothed = smooth(h2, profile_kind)
+      if normalized
+        h1_smoothed.normalize.distance_supereuclidean(h2_smoothed.normalize, 0.1)
+      else
+        h1_smoothed.distance_supereuclidean(h2_smoothed, 0.1)
+      end
+    when 'paper'
+      # watch out, paper IGNORES normalized because it needs it
+      h1.normalize.distance_paper_ordinal(h2.normalize)
     end
   end
 
@@ -150,6 +157,7 @@ module Train
       profile_kind = ProfileKinds.find(pk_id)
       c = profile_kind.config
       profiles_with_empty_months_filled = Util::fill_empty_months(profiles)
+      puts "empy months: #{user_id}" if profiles_with_empty_months_filled.length != profiles.length
       Util::sliding_window(profiles_with_empty_months_filled,
                            c[:window_size] || 3).map do |profiles_current_window|
         p = profiles_current_window.last
@@ -157,9 +165,16 @@ module Train
           average_histogram = compute_average_histogram(profiles_current_window[0...-1].compact,
                                                         profile_kind)
           p.average_histogram = average_histogram.data
-          p.distance = compute_distance(Histogram.new(p.histogram), average_histogram, profile_kind)
-          p.normalized_distance = compute_distance(Histogram.new(p.histogram), average_histogram,
-                                                   profile_kind, true)
+          begin
+            p.distance = compute_distance(Histogram.new(p.histogram), average_histogram, profile_kind)
+            p.normalized_distance = compute_distance(Histogram.new(p.histogram), average_histogram,
+                                                     profile_kind, true)
+          rescue
+            puts "RESCUE!!!"
+            puts "#{p.id}"
+            pp p.histogram
+            pp average_histogram.data
+          end
         end
         p
       end

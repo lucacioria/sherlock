@@ -134,3 +134,30 @@ In tables \ref{tab:conf_2_04} and \ref{tab:conf_2_08} we show the confusion matr
 \caption{Confusion matrix for $\alpha = 0.8$. Recall = $70\%$, precision = $89\%$}
 \label{tab:conf_2_08}
 \end{table}
+
+
+\section{Testing with a different distance function: MDPA}
+\label{sec:mdpa_test}
+
+In chapter \ref{profiles}, when we created our distance function, we postulated the positive effect of non-linear positionality.
+If we think about distances as the minimum amount of work to transform histogram $H(A)$ into histogram $H(B)$, then a funciton distance was defined as positional if the cost of moving values from a bin to another depended on the distance between those bins.
+The distance function of minimum pair assignments, as described in \cite{histogram}, assigns a linear cost to such movements. Our distance function is based on pre-filtering the histograms and then applying the euclidean distance, giving us the freedom to apply a non-linear smoothing filter, such as the gaussian one.
+
+In order to test our hypothesis, we replicated the exact same test we did in the previous seciton using the minimum pair assignments distance and compared the results. In table \ref{tab:conf_3_06} we can see the results displayed as the usual confusion matrix, with precision and recall values.
+
+Compared to our previous results, using the vanilla MDPA distance function gives us both lower recall and lower precision values. Recall dropped 15\% and precision by 9\%. This test, having been performed on a large sample of real data, is a clear indication that our approach to the filtered distance function is valid, and that the intuition that positionality should not be linear has value.
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 286\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 71\end{tabular}}} &  &  &  \\ \cline{1-2}
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false negative\\ 168\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true negative\\ 375\end{tabular}}} &  &  &  \\ \cline{1-2}
+ &  &  &  &  \\
+ &  &  &  &
+\end{tabular}
+\caption{Confusion matrix for $\alpha = 0.6$. Recall = $63\%$, precision = $80\%$}
+\label{tab:conf_3_06}
+\end{table}
+
