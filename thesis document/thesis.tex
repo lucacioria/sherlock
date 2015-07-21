@@ -10,13 +10,18 @@
 
 % Configuration
 	% Thesis title
-	\newcommand{\thesisTitle}{Temporal Analysis of Wire Transfers for Fraud Detection}
+\newcommand{\thesisTitle}{\textbf{Temporal Analysis of Wire Transfers for Fraud Detection}}
 	% Thesis author
 	\newcommand{\thesisAuthor}{Luca Cioria}
 	% Author's previous degrees
 	\newcommand{\authorDegrees}{M.Sc., Politecnico di Milano, Apr 2014}
 	% Current degree (Thesis's degree)
 	\newcommand{\thesisDegree}{Master of Science in Computer Science}
+
+\makeatletter
+\renewcommand*\l@figure{\@dottedtocline{1}{0em}{5.5em}}% Default: 1.5em/2.3em
+\let\l@table\l@figure
+\makeatother
 
 \usepackage[unicode,
 			pdftex,
@@ -59,14 +64,17 @@
 		\vspace{3.2cm}
     THESIS\\
 		\vspace{0.2cm}
+    {\linespread{0.6}
     Submitted as partial fulfillment of the requirements\\
     for the degree of Master of Science in Computer Science\\
     in the Graduate College of the\\
-    University of Illinois at Chicago, 2015
+  University of Illinois at Chicago, 2015}
 		\vspace{0.5cm}
     \begin{flushleft}
-    Chair: Venkat\\
-    Committee:  Lenore Zuck, Stefano Zanero
+      Defense Committee:\\
+      \hspace{1cm}V. N. Venkatakrishnan, Chair and Advisor\\
+      \hspace{1cm}Lenore Zuck\\
+      \hspace{1cm}Stefano Zanero, Politecnico di Milano
     \end{flushleft}
 
 	\end{center}

@@ -149,9 +149,12 @@ The euclidean function is reflexive, non-negative and commutative but not positi
   \item[commutative] Following the same logic, the transform does not affect commutativity of the euclidean distance.
   \item[non-negative]
     However transformed, the input of the euclidean distance does not affect its non negativity (the difference over each dimension is squared).
-  \item[positional] general idea, to be explained in a more formal way:
-    1. if we apply the filter, the distance is <= than without the filter
-    2. the distance is reduce more if the bins are closer together (show this somehow)
+  \item[positional] First, the euclidean distance can be rewritten like this:
+    $$\sqrt{\sum_{n=0}^{n} (a_i-b_i)^2} = \sqrt{\sum_{n=0}^{n} a_i^2+b_i^2-2a_ib_i} = \sqrt{\sum_{n=0}^{n} a_i^2 + \sum_{n=0}^{n} b_i^2 - \sum_{n=0}^{n} 2a_ib_i}$$
+    The first and sencond sum are indipendent of the order of bins, while the third one multiplies bins in the same position. Therefore, the higher the overlap of the two histograms, the lower their distance. The gaussian filter will transform the histograms decreasing their variance. The higher the $\sigma$ value, the lower the variance. Consider a normalized histogram $H(A)$ of length $n$ (whose integral is 1):
+      $$\lim_{\sigma\to\infty} a_i = \frac{1}{n}, 0 \leq i < n $$
+      Therefore, after a gaussian filter, bins will be closer to the average value of $\frac{1}{n}$ and overlap will have increase, reducing their distance. Since the total area can be conserved simply by normalizing the histogram after the filter, the first two sums are not affected.
+      Now, to explain why this satisfy the requirements of positionality, we can see that the gaussian filter will transform each bin only based on at most $\ceil{3\sigma}$ bins on each side. Therefore, if bins are far apart, the overlap will not increase for low enough $\sigma$ values. The closer they are, the more the overlap will increase and the final distance decrease. This is exactly what positionality requires, as defined before and for the goal of our work.
 \end{description}
 
 \subsection{Example of the low-pass filter euclidean distance}
