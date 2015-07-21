@@ -1,11 +1,11 @@
 % !TEX root =  ../thesis.tex
 \section{Conclusions}
 
-We started this work to improve the performance of the temporal profile as designed and implemented in banksealer. We first defined a new, more general approach to the problem. We developed a custom way to measure the distance between feature histograms, which can be tuned to reflect a meaningfull distance for each feature. Then we tested these assumptions both against generated users and a pool of real user transactions.
+We started this work to improve the performance of the temporal profile as designed and implemented in banksealer. We first defined a new, more general approach to the problem. We developed a custom way to measure the distance between feature histograms, which can be tuned to reflect a meaningful distance for each feature. Then we tested these assumptions both against generated users and a pool of real user transactions.
 
-The results of such tests are in themselves already an improvement over the previous temporal profile, yielding better performance overall and in particular working in many situations where the previos algorithm would not have worked at all.
+The results of such tests are in themselves already an improvement over the previous temporal profile, yielding better performance overall and in particular working in many situations where the previous algorithm would not have worked at all.
 
-This method is also much more general, and can be used to analyze every feature with the same approach but individually tuned parameters. This is probably the greatest improvement, because it opens interesting possibilites regarding the discovery of different types of fraud with respect to the ones imagined here.
+This method is also much more general, and can be used to analyze every feature with the same approach but individually tuned parameters. This is probably the greatest improvement, because it opens interesting possibilities regarding the discovery of different types of fraud with respect to the ones imagined here.
 
 \section{Future work}
 
@@ -13,7 +13,7 @@ During the development of this work, a few important areas of improvement became
 
 \begin{description}
 \item[undertrained users] In the original BankSealer system great care was taken of `undertrained users'. These users are those who, being new customer, do not have enough data points to be effectively profiled and therefore their profiles are not detailed enough to perform good analysis. This problem was solved by generating global profiles that represent the typical user, and using these profiles on undertrained users until they had enough information of their own. A similar approach could be tried for the temporal analysis system presented in this work.
-\item[analysis of transactions] The last step in the system is the extraction of those transactions that most likely are the cause for the shift in the user spending behavior, and have a higher likelyhood of being frauds. We performed this analysis at a `per feature' basis, selecting a group of transactions for each anomalous feature. In could be interesting to explore a more integrated way, maybe using some clustering algorithm, to find groups of transactions that have something in common and contribute as a group to the anomaly.
+\item[analysis of transactions] The last step in the system is the extraction of those transactions that most likely are the cause for the shift in the user spending behavior, and have a higher likelihood of being frauds. We performed this analysis at a `per feature' basis, selecting a group of transactions for each anomalous feature. In could be interesting to explore a more integrated way, maybe using some clustering algorithm, to find groups of transactions that have something in common and contribute as a group to the anomaly.
 \item[global anomaly score] The current system is not integrated in the anomaly score computation of BankSealer, since we could not find a straightforward way of merging the two scores. The problem is that the temporal analysis gives information on a profile as a whole, and then tries to bring that information to individual transactions, while the local profile as implemented in BankSealer works at the transaction level directly.
 \item[parameter optimization] With more real world data and analyst feedback, an optimization of the parameters that need to be tuned for the temporal analysis to work would be interesting. This tuning could be helped by a supervised system, such as a neural network, that received feedbacks form the analyst, marking transactions as interesting.
 \end{description}

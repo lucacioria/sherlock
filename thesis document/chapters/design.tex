@@ -10,11 +10,11 @@ First, transactions are grouped by time windows and user profiles are generated.
 
 Then, the distance from the past profiles is computed for each profile. The past is an average of the last few profiles for that user and feature, in the preceding time windows. This average is weighed on exponentially discounted weights the further in the past we go.
 
-The third step is to analyze these distances and select anomalous ones, those that ar greater than a dynamic threshold based on the standard deviation of past distances.
+The third step is to analyze these distances and select anomalous ones, those that are greater than a dynamic threshold based on the standard deviation of past distances.
 
-Lastly, after having identifies the profiles with anomalous distances, we select the transactions in these profiles that are the best canditates as to being responsible for the anomaly in the distances.
+Lastly, after having identifies the profiles with anomalous distances, we select the transactions in these profiles that are the best candidates as to being responsible for the anomaly in the distances.
 
-The final goal is to present these findings in a strucured way to an expert analyst, detailing where each figure came from in the analysis, so that the analyst better know where to look and what to give more importance too also based on their experience.
+The final goal is to present these findings in a structured way to an expert analyst, detailing where each figure came from in the analysis, so that the analyst better know where to look and what to give more importance too also based on their experience.
 
 \begin{figure}[h]
 \centering
@@ -44,7 +44,7 @@ After a time window has passed (e.g.: the first of the month), the following pro
 
 At this stage we have, for a combination of user and feature, a chronological series of profiles (one for each time window). For each profile, we know its distance from the past, how much that profile changed compared to the past ones. This represents a shift in spending habits of the user, who maybe began working at night or spending larger sums, or whose transactions might in fact be frauds.
 
-The current step identifies the profiles whose distance is greater than normal. How do we define the threshold for normality? The standard deviation of the $M$ previous distances, where $M$ is a tunable parameter, is computed. The threshold is dynamically defined for each profile as this standard deviation times a sensitivity paramenter $\alpha$. In this way, we can mark as anomalous only those profile that move apart from the current mean by more than $\alpha$ times the typical standard deviation.
+The current step identifies the profiles whose distance is greater than normal. How do we define the threshold for normality? The standard deviation of the $M$ previous distances, where $M$ is a tunable parameter, is computed. The threshold is dynamically defined for each profile as this standard deviation times a sensitivity parameter $\alpha$. In this way, we can mark as anomalous only those profile that move apart from the current mean by more than $\alpha$ times the typical standard deviation.
 
 The following procedure summarizes what we have just explained, and is illustrated in figure \ref{fig:distance_analysis}:
 
@@ -60,20 +60,20 @@ The following procedure summarizes what we have just explained, and is illustrat
 \begin{figure}[h]
 \centering
 \includegraphics[width=450]{images/distance_analysis.pdf}
-\caption{Analysis of the distances between profiles to determin anomalous profiles}
+\caption{Analysis of the distances between profiles to determine anomalous profiles}
 \label{fig:distance_analysis}
 \end{figure}
 
 \section{Transactions' analysis}
 \label{sec:transactions_analysis}
 
-The last step of our system is to try to identifies those transactions part of the anomalous profiles that could be responsible for such anomaly. For example, if we have an anomalous profiles for the feature amount, we select those features that were the most atypical in terms of amount, in a similar way to what is done in the local profile in banksealer \cite{banksealer}.
+The last step of our system is to try to identifies those transactions part of the anomalous profiles that could be responsible for such anomaly. For example, if we have an anomalous profiles for the feature amount, we select those features that were the most atypical in terms of amount, in a similar way to what is done in the local profile in BankSealer \cite{banksealer}.
 
-While this might seem redundant with respect to the local profile at first, what it does is very different. Transactions are not marked as anomalous because individually they differed from the typical user behaviors, but because they contribute to an overall behavioral shift. This is to be combined with the information we get form the local profile, so that fraudolent transactions that ordinarily would have passed by the local profile can be brought up by our temporal analysis.
+While this might seem redundant with respect to the local profile at first, what it does is very different. Transactions are not marked as anomalous because individually they differed from the typical user behaviors, but because they contribute to an overall behavioral shift. This is to be combined with the information we get form the local profile, so that fraudulent transactions that ordinarily would have passed by the local profile can be brought up by our temporal analysis.
 
 To select the interesting transactions we have adopted a simple approach: search for bins which diverge the most from the average, and take those transactions as interesting. We stop when the distance, recomputed without considering these bins, falls under the anomaly threshold.
 
-We will explain this in more detail in the next paragraphs, but first an important element to be considered is anomaly caused by absence rather than presence. Distance is symmetric, and the same anomaly level can be caused by an increment in transactions (for instance, with amount around 500 euros) and by a decrement of such transactions. It is however impossible to collect transactions that contributed to the anomaly if a decrement happened, and also less likely that the problem is associated with an attemped fraud.
+We will explain this in more detail in the next paragraphs, but first an important element to be considered is anomaly caused by absence rather than presence. Distance is symmetric, and the same anomaly level can be caused by an increment in transactions (for instance, with amount around 500 euros) and by a decrement of such transactions. It is however impossible to collect transactions that contributed to the anomaly if a decrement happened, and also less likely that the problem is associated with an attempted fraud.
 
 The procedure (illustrated in figure \ref{fig:transactions_analysis}) is as follows:
 

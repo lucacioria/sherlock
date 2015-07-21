@@ -1,13 +1,15 @@
 % !TEX root =  ../thesis.tex
 
 
-To test our temporal profile analysis system, we focused on a few scenarios where the typical local profile analysis would fall short and tried to see if the temporal analysis could help in identifying anomalous transactions. Our tests are based on a mixture of real data, taken from the transaction databased made available by our bank partner, and syntetic data. Syntetic data is used mainly to inject transactions that should be recognized as frauds, and in certain cases to create specific speding profiles to test.
+To test our temporal profile analysis system, we focused on a few scenarios where the BankSealer local profile analysis would fall short and tried to see if the temporal analysis could help in identifying anomalous transactions. Such scenarios are those that involve analyzing more than one transaction at a time, since the local profile falls short in that area. Also, these scenarios are difficult even for the old temporal profile, because of its issues with generality and grand totals as described in chapter \ref{introduction}.
+
+Our tests are based on a mixture of real data, taken from the transaction database made available by our bank partner, and synthetic data. Synthetic data is used mainly to inject transactions that should be recognized as frauds, and in certain cases to create specific spending profiles to test.
 
 \section{Detection of normal amount transactions}
 
-This test is designed to spot anomalous behaviors in the number of transactions. We take a user that performs on average 30 transactions per month, with an amount linearly distributed between 0 and 5000 euros. We then inject 10 transactions in a specific month, having an amount of 50 euros. These transactions will not be considered suspicious by the local profile analysis because they fall in the range of normality with respect to their amount. Also, the previous temporal analysis system, as defined in banksealer~\cite{banksealer}, is not really able to detect the problem because it only analyzes the total number of transactions. The addition of 10 transactions in a month to a user that had, in the past, between 20 and 40 transactions per month, is not enough to trigger the old temporal profile system.
+This first test is designed to detect anomalous behaviors concerning the quantity of transactions that fall within a similar category. We take a user that performs on average 30 transactions per month, with an amount linearly distributed between 0 and 5000 euros. We then inject 10 transactions in a specific month, having an amount of 50 euros, which therefore fall in the same category (the histogram bin) with respect to the amount. These transactions will not be considered suspicious by the local profile analysis because they fall in the range of normality with respect to their amount. Also, the previous temporal analysis system, as defined in banksealer~\cite{banksealer}, is not able to detect the problem because it only analyzes the total number of transactions and therefore is triggered at a much higher threshold. The addition of 10 transactions in a month to a user that had, in the past, between 20 and 40 transactions per month, is not enough to trigger the old temporal profile system.
 
-We ran the test on syntetic data, generating 100 users that would match this spending profile, and injecting in all of them anomalous transactions as explained above. The results of the test depend heavily on the sensitivity thresholds used. In table \ref{tab:conf_1_06} we see the confusion matrix resulting from a threshold $\alpha = 0.6$. The first thing to evaluate is the \textbf{recall}:
+We ran the test on synthetic data, generating 100 users that would match this spending profile, and injecting in all of them anomalous transactions as explained above. The results of the test depend heavily on the sensitivity thresholds used. In table \ref{tab:conf_1_06} we see the confusion matrix resulting from a threshold $\alpha = 0.6$. The first thing to evaluate is the \textbf{recall}:
 \begin{displaymath}
 \text{recall} = \text{TP} / (\text{TP} + \text{FN}) = 66\%
 \end{displaymath}
@@ -19,6 +21,7 @@ The recall, while not perfect, is in itself a good sign and can certainly be use
 
 \begin{table}[h]
 \centering
+\caption{CONFUSION MATRIX $\alpha = 0.6$}
 \begin{tabular}{lllll}
 \cline{1-2}
 \multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 66\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 60\end{tabular}}} &  &  &  \\ \cline{1-2}
@@ -26,7 +29,6 @@ The recall, while not perfect, is in itself a good sign and can certainly be use
  &  &  &  &  \\
  &  &  &  &
 \end{tabular}
-\caption{CONFUSION MATRIX $\alpha = 0.6$}
 \label{tab:conf_1_06}
 \end{table}
 
@@ -46,6 +48,7 @@ In tables \ref{tab:conf_1_07} and \ref{tab:conf_1_05} we see how the numbers cha
 
 \begin{table}[h]
 \centering
+\caption{CONFUSION MATRIX $\alpha = 0.5$. RECALL $75\%$, PRECISION $45\%$}
 \begin{tabular}{lllll}
 \cline{1-2}
 \multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 75\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 92\end{tabular}}} &  &  &  \\ \cline{1-2}
@@ -53,12 +56,12 @@ In tables \ref{tab:conf_1_07} and \ref{tab:conf_1_05} we see how the numbers cha
  &  &  &  &  \\
  &  &  &  &
 \end{tabular}
-\caption{CONFUSION MATRIX $\alpha = 0.5$. RECALL $75\%$, PRECISION $45\%$}
 \label{tab:conf_1_05}
 \end{table}
 
 \begin{table}[h]
 \centering
+\caption{CONFUSION MATRIX $\alpha = 0.7$. RECALL $59\%$, PRECISION $55\%$}
 \begin{tabular}{lllll}
 \cline{1-2}
 \multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 59\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 49\end{tabular}}} &  &  &  \\ \cline{1-2}
@@ -66,7 +69,6 @@ In tables \ref{tab:conf_1_07} and \ref{tab:conf_1_05} we see how the numbers cha
  &  &  &  &  \\
  &  &  &  &
 \end{tabular}
-\caption{CONFUSION MATRIX $\alpha = 0.7$. RECALL $59\%$, PRECISION $55\%$}
 \label{tab:conf_1_07}
 \end{table}
 
@@ -78,7 +80,7 @@ In the next section we will perform a second test that considers the feature `am
 
 \section{Testing on real user data}
 
-In the previous test we generated both the user behavior and the frauds. This was done to analyze specifically a situation that was difficult to detect with the previous temporal analysis system, and that our system managed to imporove. We will now switch to real user data with generated frauds. The fraud structure is the same: a series of small transactions, between 8 and 16 transactions injected in a single month. The amount of these transactions is between 20 and 50 euros, and will therefore be categorized in the first bin of the amount feature.
+In the previous test we generated both the user behavior and the frauds. This was done to analyze specifically a situation that was difficult to detect with the previous temporal analysis system, and that our system managed to improve. We will now switch to real user data with generated frauds. The fraud structure is the same: a series of small transactions, between 8 and 16 transactions injected in a single month. The amount of these transactions is between 20 and 50 euros, and will therefore be categorized in the first bin of the amount feature.
 
 \subsection{Selection of users}
 In order to be as much as possible unbiased, we run the analysis on a large pool of users that were randomly selected from the database, taking from the users that had a sufficient number of transactions over 5 months. The users have very different spending profiles: some of them are similar to the generated users in the last analysis, spending mostly small amounts, others perform only a few transfers and of higher amounts.
@@ -94,6 +96,7 @@ Testing now in a real world situation, we include users with behaviors that make
 
 \begin{table}[h]
 \centering
+\caption{CONFUSION MATRIX $\alpha = 0.6$. RECALL $74\%$, PRECISION $88\%$}
 \begin{tabular}{lllll}
 \cline{1-2}
 \multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 339\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 47\end{tabular}}} &  &  &  \\ \cline{1-2}
@@ -101,16 +104,16 @@ Testing now in a real world situation, we include users with behaviors that make
  &  &  &  &  \\
  &  &  &  &
 \end{tabular}
-\caption{CONFUSION MATRIX $\alpha = 0.6$. RECALL $74\%$, PRECISION $88\%$}
 \label{tab:conf_2_06}
 \end{table}
 
 \subsection{Sensitivity to the threshold parameter}
 
-In tables \ref{tab:conf_2_04} and \ref{tab:conf_2_08} we show the confusion matrices with the threshold parameter value modified by $0.2$. The results in this situation are not very sensitive to such deviations, and while the F1 score is maximised at around $\alpha = 0.3$ the variations are minimal. This is probably due to the greater variance of spending profiles, and therefore selecting a value that leads to overfitting is much less likely. In our last test, the opposite was true, and that is why the sensitivity was higher.
+In tables \ref{tab:conf_2_04} and \ref{tab:conf_2_08} we show the confusion matrices with the threshold parameter value modified by $0.2$. The results in this situation are not very sensitive to such deviations, and while the F1 score is maximized at around $\alpha = 0.3$ the variations are minimal. This is probably due to the greater variance of spending profiles, and therefore selecting a value that leads to overfitting is much less likely. In our last test, the opposite was true, and that is why the sensitivity was higher.
 
 \begin{table}[h]
 \centering
+\caption{CONFUSION MATRIX $\alpha = 0.4$. RECALL $79\%$, PRECISION $86\%$}
 \begin{tabular}{lllll}
 \cline{1-2}
 \multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 360\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 60\end{tabular}}} &  &  &  \\ \cline{1-2}
@@ -118,12 +121,12 @@ In tables \ref{tab:conf_2_04} and \ref{tab:conf_2_08} we show the confusion matr
  &  &  &  &  \\
  &  &  &  &
 \end{tabular}
-\caption{CONFUSION MATRIX $\alpha = 0.4$. RECALL $79\%$, PRECISION $86\%$}
 \label{tab:conf_2_04}
 \end{table}
 
 \begin{table}[h]
 \centering
+\caption{CONFUSION MATRIX $\alpha = 0.8$. RECALL $70\%$, PRECISION $89\%$}
 \begin{tabular}{lllll}
 \cline{1-2}
 \multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 318\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 37\end{tabular}}} &  &  &  \\ \cline{1-2}
@@ -131,7 +134,6 @@ In tables \ref{tab:conf_2_04} and \ref{tab:conf_2_08} we show the confusion matr
  &  &  &  &  \\
  &  &  &  &
 \end{tabular}
-\caption{CONFUSION MATRIX $\alpha = 0.8$. RECALL $70\%$, PRECISION $89\%$}
 \label{tab:conf_2_08}
 \end{table}
 
@@ -140,16 +142,17 @@ In tables \ref{tab:conf_2_04} and \ref{tab:conf_2_08} we show the confusion matr
 \label{sec:mdpa_test}
 
 In chapter \ref{profiles}, when we created our distance function, we postulated the positive effect of non-linear positionality.
-If we think about distances as the minimum amount of work to transform histogram $H(A)$ into histogram $H(B)$, then a funciton distance was defined as positional if the cost of moving values from a bin to another depended on the distance between those bins.
+If we think about distances as the minimum amount of work to transform histogram $H(A)$ into histogram $H(B)$, then a function distance was defined as positional if the cost of moving values from a bin to another depended on the distance between those bins.
 The distance function of minimum pair assignments, as described in \cite{histogram}, assigns a linear cost to such movements. Our distance function is based on pre-filtering the histograms and then applying the euclidean distance, giving us the freedom to apply a non-linear smoothing filter, such as the gaussian one.
 
-In order to test our hypothesis, we replicated the exact same test we did in the previous seciton using the minimum pair assignments distance and compared the results. In table \ref{tab:conf_3_06} we can see the results displayed as the usual confusion matrix, with precision and recall values.
+In order to test our hypothesis, we replicated the exact same test we did in the previous section using the minimum pair assignments distance and compared the results. In table \ref{tab:conf_3_06} we can see the results displayed as the usual confusion matrix, with precision and recall values.
 
 Compared to our previous results, using the vanilla MDPA distance function gives us both lower recall and lower precision values. Recall dropped 15\% and precision by 9\%. This test, having been performed on a large sample of real data, is a clear indication that our approach to the filtered distance function is valid, and that the intuition that positionality should not be linear has value.
 
 
 \begin{table}[h]
 \centering
+\caption{CONFUSION MATRIX $\alpha = 0.6$. RECALL $63\%$, PRECISION $80\%$}
 \begin{tabular}{lllll}
 \cline{1-2}
 \multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}true positive\\ 286\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}false positive\\ 71\end{tabular}}} &  &  &  \\ \cline{1-2}
@@ -157,7 +160,6 @@ Compared to our previous results, using the vanilla MDPA distance function gives
  &  &  &  &  \\
  &  &  &  &
 \end{tabular}
-\caption{CONFUSION MATRIX $\alpha = 0.6$. RECALL $63\%$, PRECISION $80\%$}
 \label{tab:conf_3_06}
 \end{table}
 
